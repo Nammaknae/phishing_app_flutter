@@ -1,4 +1,6 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 
 class ChatBotScreen extends StatefulWidget {
   final String? initialMessage;
@@ -16,14 +18,17 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
 
   late List<Map<String, dynamic>> _messages;
 
+  bool _isLoading = false;
+
+  static const String _geminiApiKey = '_여기에 api키를 입력하세요_';
+
   @override
   void initState() {
     super.initState();
 
     _messages = [
       {
-        'text':
-            '안녕하세요.\n스미싱 대응 AI 챗봇입니다.\n의심 문자 대응, 신고 방법, 링크 클릭 후 조치 방법을 안내해드릴게요.',
+        'text': '안녕하세요. 무엇이든 편하게 물어보세요.',
         'isMe': false,
       },
     ];
@@ -31,14 +36,9 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
     if (widget.initialMessage != null &&
         widget.initialMessage!.trim().isNotEmpty) {
       _messages.add({'text': widget.initialMessage!, 'isMe': true});
-      _messages.add({
-        'text':
-            '입력하신 내용을 확인했어요.\n스미싱 위험이 의심됩니다.\n\n'
-            '1. 링크를 누르지 마세요.\n'
-            '2. 발신 번호를 차단하세요.\n'
-            '3. 개인정보 입력 여부를 확인하세요.\n'
-            '4. 피해가 있었다면 118에 신고하세요.',
-        'isMe': false,
+
+      Future.delayed(Duration.zero, () {
+        _sendInitialMessage(widget.initialMessage!);
       });
     }
 
@@ -57,54 +57,119 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
   void _handleBack() {
     if (widget.onBackHome != null) {
       widget.onBackHome!();
-    } else if (Navigator.canPop(context)) {  // ← 뒤로가기 버그 수정
+    } else if (Navigator.canPop(context)) {
       Navigator.pop(context);
     }
   }
 
-  void _sendMessage() {
-    if (_messageController.text.trim().isEmpty) return;
+  Future<String> _getGeminiResponse(String message) async {
+    try {
+      final url = Uri.parse(
+        'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent',
+      );
+
+      final response = await http.post(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          'x-goog-api-key': _geminiApiKey,
+        },
+        body: jsonEncode({
+          'contents': [
+            {
+              'parts': [
+                {
+                  'text': '너는 친절한 한국어 AI assistant다.\n'
+                      '사용자의 질문에 자연스럽고 정확하게 답변해라.\n'
+                      '불필요하게 형식을 강제하지 말고, 일반적인 AI 챗봇처럼 대화해라.\n'
+                      '사용자가 스미싱, 피싱, 의심 문자, 링크 클릭, 개인정보 입력, 금전 피해에 대해 물어볼 때만 '
+                      '안전 조치와 신고 방법을 함께 안내해라.\n\n'
+                      '사용자 질문:\n$message',
+                }
+              ],
+            }
+          ],
+          'generationConfig': {
+            'temperature': 0.7,
+            'maxOutputTokens': 1000,
+          },
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(utf8.decode(response.bodyBytes));
+
+        final text = data['candidates']?[0]?['content']?['parts']?[0]?['text'];
+
+        if (text != null && text.toString().trim().isNotEmpty) {
+          return text.toString().trim();
+        }
+
+        return '답변이 비어 있어요. 다시 입력해주세요.';
+      } else {
+        return 'Gemini API 오류가 발생했어요.\n'
+            '상태 코드: ${response.statusCode}\n'
+            '응답 내용: ${response.body}';
+      }
+    } catch (e) {
+      return '네트워크 오류가 발생했어요.\n$e';
+    }
+  }
+
+  Future<void> _sendInitialMessage(String text) async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    final aiReply = await _getGeminiResponse(text);
+
+    setState(() {
+      _messages.add({'text': aiReply, 'isMe': false});
+      _isLoading = false;
+    });
+
+    _scrollToBottom();
+  }
+
+  Future<void> _sendMessage() async {
+    if (_messageController.text.trim().isEmpty || _isLoading) return;
 
     final String text = _messageController.text.trim();
 
     setState(() {
       _messages.add({'text': text, 'isMe': true});
-      _messages.add({'text': _getBotResponse(text), 'isMe': false});
       _messageController.clear();
+      _isLoading = true;
     });
 
-    Future.delayed(const Duration(milliseconds: 100), () {
-      _scrollToBottom();
+    _scrollToBottom();
+
+    final String aiReply = await _getGeminiResponse(text);
+
+    setState(() {
+      _messages.add({'text': aiReply, 'isMe': false});
+      _isLoading = false;
     });
-  }
 
-  String _getBotResponse(String input) {
-    final String text = input.toLowerCase();
-
-    if (text.contains('링크') || text.contains('눌렀')) {
-      return '의심 링크는 절대 추가로 클릭하지 마세요.\n이미 눌렀다면 개인정보 입력 여부를 확인하고 비밀번호를 변경하세요.';
-    } else if (text.contains('신고')) {
-      return '스미싱이 의심되면 118(인터넷진흥원)에 신고할 수 있어요.\n금전 피해가 있으면 112 또는 금융기관에도 바로 연락하세요.';
-    } else if (text.contains('문자') || text.contains('메시지')) {
-      return '택배, 환급금, 청첩장, 계정정지 같은 문구와 함께 링크가 오면 스미싱일 가능성이 높아요.';
-    } else {
-      return '의심 문자 내용, 링크 클릭 여부, 개인정보 입력 여부를 알려주시면 더 구체적으로 안내해드릴게요.';
-    }
+    _scrollToBottom();
   }
 
   void _addQuickMessage(String text) {
+    if (_isLoading) return;
     _messageController.text = text;
     _sendMessage();
   }
 
   void _scrollToBottom() {
-    if (!_scrollController.hasClients) return;
+    Future.delayed(const Duration(milliseconds: 100), () {
+      if (!_scrollController.hasClients) return;
 
-    _scrollController.animateTo(
-      _scrollController.position.maxScrollExtent + 120,
-      duration: const Duration(milliseconds: 300),
-      curve: Curves.easeOut,
-    );
+      _scrollController.animateTo(
+        _scrollController.position.maxScrollExtent + 120,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOut,
+      );
+    });
   }
 
   Widget _buildQuickAction(String label, IconData icon) {
@@ -143,9 +208,8 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
     return Align(
       alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
       child: Row(
-        mainAxisAlignment: isMe
-            ? MainAxisAlignment.end
-            : MainAxisAlignment.start,
+        mainAxisAlignment:
+            isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           if (!isMe) ...[
@@ -157,7 +221,7 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
                 shape: BoxShape.circle,
               ),
               child: const Icon(
-                Icons.security_rounded,
+                Icons.smart_toy_rounded,
                 color: Colors.white,
                 size: 20,
               ),
@@ -179,9 +243,8 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
                   bottomLeft: Radius.circular(isMe ? 18 : 6),
                   bottomRight: Radius.circular(isMe ? 6 : 18),
                 ),
-                border: isMe
-                    ? null
-                    : Border.all(color: const Color(0xFFD9E6F5)),
+                border:
+                    isMe ? null : Border.all(color: const Color(0xFFD9E6F5)),
                 boxShadow: [
                   BoxShadow(
                     color: Colors.black.withOpacity(0.05),
@@ -197,6 +260,47 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
                   height: 1.55,
                   color: isMe ? Colors.white : const Color(0xFF1F2937),
                 ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLoadingBubble() {
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          Container(
+            width: 36,
+            height: 36,
+            decoration: const BoxDecoration(
+              color: Color(0xFF1565C0),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.smart_toy_rounded,
+              color: Colors.white,
+              size: 20,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Container(
+            margin: const EdgeInsets.only(bottom: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: const Color(0xFFD9E6F5)),
+            ),
+            child: const Text(
+              '답변을 생성하고 있어요...',
+              style: TextStyle(
+                fontSize: 15,
+                color: Color(0xFF64748B),
               ),
             ),
           ),
@@ -226,12 +330,10 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
             onPressed: _handleBack,
           ),
           title: const Text(
-            '스미싱 대응 AI 챗봇',
+            'AI 챗봇',
             style: TextStyle(fontWeight: FontWeight.bold),
           ),
         ),
-        // ← 핵심 수정: resizeToAvoidBottomInset 추가
-        // 키보드가 올라올 때 채팅창이 짤리지 않게 함
         resizeToAvoidBottomInset: true,
         body: Column(
           children: [
@@ -253,7 +355,7 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
                       radius: 22,
                       backgroundColor: Colors.white24,
                       child: Icon(
-                        Icons.shield_rounded,
+                        Icons.smart_toy_rounded,
                         color: Colors.white,
                         size: 24,
                       ),
@@ -264,7 +366,7 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            '보안 상담 활성화',
+                            'AI 상담 활성화',
                             style: TextStyle(
                               color: Colors.white,
                               fontWeight: FontWeight.w800,
@@ -273,7 +375,7 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
                           ),
                           SizedBox(height: 6),
                           Text(
-                            '의심 문자 대응, 신고 안내, 클릭 후 조치 방법을 빠르게 안내합니다.',
+                            'AI가 상담을 도와드립니다.',
                             style: TextStyle(
                               color: Colors.white,
                               fontSize: 13.5,
@@ -291,8 +393,11 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
               child: ListView.builder(
                 controller: _scrollController,
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-                itemCount: _messages.length,
+                itemCount: _messages.length + (_isLoading ? 1 : 0),
                 itemBuilder: (context, index) {
+                  if (_isLoading && index == _messages.length) {
+                    return _buildLoadingBubble();
+                  }
                   return _buildMessageBubble(_messages[index]);
                 },
               ),
@@ -305,15 +410,14 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
                   spacing: 8,
                   runSpacing: 8,
                   children: [
+                    _buildQuickAction('의심 문자 확인해줘', Icons.sms_outlined),
                     _buildQuickAction('링크를 눌렀어요', Icons.link_off),
-                    _buildQuickAction('신고 방법 알려주세요', Icons.campaign_outlined),
-                    _buildQuickAction('의심 문자 확인방법', Icons.sms_outlined),
+                    _buildQuickAction('신고 방법 알려줘', Icons.campaign_outlined),
                   ],
                 ),
               ),
             ),
             const SizedBox(height: 10),
-            // ← 핵심 수정: SafeArea로 감싸서 하단이 짤리지 않게 함
             SafeArea(
               top: false,
               child: Container(
@@ -333,6 +437,7 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
                         ),
                         child: TextField(
                           controller: _messageController,
+                          enabled: !_isLoading,
                           style: const TextStyle(
                             fontSize: 15.5,
                             color: Color(0xFF0F172A),
@@ -340,7 +445,7 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
                           minLines: 1,
                           maxLines: 4,
                           decoration: const InputDecoration(
-                            hintText: '의심 문자 내용이나 궁금한 점을 입력하세요',
+                            hintText: '무엇이든 물어보세요',
                             hintStyle: TextStyle(
                               color: Color(0xFF64748B),
                               fontSize: 14.5,
@@ -371,7 +476,7 @@ class _ChatBotScreenState extends State<ChatBotScreen> {
                           color: Colors.white,
                           size: 24,
                         ),
-                        onPressed: _sendMessage,
+                        onPressed: _isLoading ? null : _sendMessage,
                       ),
                     ),
                   ],
