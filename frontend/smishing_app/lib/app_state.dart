@@ -9,17 +9,9 @@ class AppState extends ChangeNotifier {
   bool _smishingAlert = true;
   bool _cautionAlert = false;
 
-  // ===============================
-  // 🔥 추가: 로그인 & 비회원 제한 관련 상태
-  // ===============================
-
-  bool _isLoggedIn = false; // 로그인 여부
-  int _guestScanCount = 0; // 비회원 검사 횟수
-  final int _maxGuestScanCount = 3; // 최대 3회 제한
-
-  // ===============================
-  // 기존 getter
-  // ===============================
+  bool _isLoggedIn = false;
+  int _guestScanCount = 0;
+  final int _maxGuestScanCount = 3;
 
   bool get isDarkMode => _isDarkMode;
   String get userName => _userName;
@@ -27,25 +19,11 @@ class AppState extends ChangeNotifier {
   bool get smishingAlert => _smishingAlert;
   bool get cautionAlert => _cautionAlert;
 
-  // ===============================
-  // 🔥 추가 getter
-  // ===============================
-
   bool get isLoggedIn => _isLoggedIn;
-
   int get guestScanCount => _guestScanCount;
-
   int get maxGuestScanCount => _maxGuestScanCount;
-
-  // 👉 비회원이 아직 검사 가능한지
   bool get canUseGuestScan => _guestScanCount < _maxGuestScanCount;
-
-  // 👉 남은 횟수
   int get remainingScanCount => _maxGuestScanCount - _guestScanCount;
-
-  // ===============================
-  // 기존 기능
-  // ===============================
 
   void toggleDarkMode() {
     _isDarkMode = !_isDarkMode;
@@ -72,29 +50,24 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
-  // ===============================
-  // 🔥 추가 기능
-  // ===============================
-
-  // 로그인 처리
   void login() {
     _isLoggedIn = true;
+    _guestScanCount = 0;
     notifyListeners();
   }
 
-  // 로그아웃 처리
   void logout() {
     _isLoggedIn = false;
     notifyListeners();
   }
 
-  // 비회원 검사 횟수 증가
   void increaseGuestScan() {
-    _guestScanCount++;
-    notifyListeners();
+    if (!_isLoggedIn && _guestScanCount < _maxGuestScanCount) {
+      _guestScanCount++;
+      notifyListeners();
+    }
   }
 
-  // 검사 횟수 초기화 (필요할 때 사용)
   void resetGuestScan() {
     _guestScanCount = 0;
     notifyListeners();
