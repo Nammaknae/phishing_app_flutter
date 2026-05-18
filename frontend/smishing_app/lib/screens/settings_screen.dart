@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../app_state.dart';
 import '../widgets/setting_header.dart';
 import 'login_screen.dart';
+import 'profile_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   final VoidCallback? onBackHome;
@@ -69,85 +70,91 @@ class _SettingsScreenState extends State<SettingsScreen> {
           if (appState.isLoggedIn)
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
-              child: Container(
-                padding: const EdgeInsets.all(18),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(18),
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF1976D2), Color(0xFF42A5F5)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.blue.withOpacity(0.25),
-                      blurRadius: 12,
-                      offset: const Offset(0, 6),
+              child: GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const ProfileScreen(),
                     ),
-                  ],
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        border: Border.all(color: Colors.white, width: 2),
+                  );
+                },
+                child: Container(
+                  padding: const EdgeInsets.all(18),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(18),
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF1976D2), Color(0xFF42A5F5)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.blue.withOpacity(0.25),
+                        blurRadius: 12,
+                        offset: const Offset(0, 6),
                       ),
-                      child: const CircleAvatar(
-                        radius: 30,
-                        backgroundColor: Colors.white,
-                        child: Icon(
-                          Icons.person,
-                          size: 34,
-                          color: Color(0xFF1976D2),
+                    ],
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white, width: 2),
+                        ),
+                        child: const CircleAvatar(
+                          radius: 30,
+                          backgroundColor: Colors.white,
+                          child: Icon(
+                            Icons.person,
+                            size: 34,
+                            color: Color(0xFF1976D2),
+                          ),
                         ),
                       ),
-                    ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            appState.userName,
-                            style: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          const Text(
-                            '로그인 사용자',
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: Colors.white70,
-                            ),
-                          ),
-                          const SizedBox(height: 6),
-                          const Row(
-                            children: [
-                              Icon(
-                                Icons.verified,
-                                size: 14,
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              appState.userName,
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
                                 color: Colors.white,
                               ),
-                              SizedBox(width: 4),
-                              Text(
-                                '로그인 완료',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w500,
-                                ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              appState.userEmail,
+                              style: const TextStyle(
+                                fontSize: 14,
+                                color: Colors.white70,
                               ),
-                            ],
-                          ),
-                        ],
+                            ),
+                            const SizedBox(height: 6),
+                            const Row(
+                              children: [
+                                Icon(Icons.verified, size: 14, color: Colors.white),
+                                SizedBox(width: 4),
+                                Text(
+                                  '간편로그인 연동',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                    const Icon(Icons.chevron_right, color: Colors.white),
-                  ],
+                      const Icon(Icons.chevron_right, color: Colors.white),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -327,17 +334,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
 본 앱은 대학교 산학 프로젝트를 목적으로 개발된 스미싱 탐지 애플리케이션입니다.
 
 사용자 보호 및 안전한 서비스 제공을 위해 개인정보 보호 정책을 준수합니다.
-
-
                               ''',
                               style: TextStyle(fontSize: 15, height: 1.5),
                             ),
                           ),
                           actions: [
                             TextButton(
-                              onPressed: () {
-                                Navigator.pop(context);
-                              },
+                              onPressed: () => Navigator.pop(context),
                               child: const Text('닫기'),
                             ),
                           ],
@@ -370,7 +373,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                   onPressed: () {
                     appState.logout();
-
                     Navigator.pushReplacement(
                       context,
                       MaterialPageRoute(

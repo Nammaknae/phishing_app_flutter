@@ -1,9 +1,5 @@
 import 'package:flutter/material.dart';
-// ❌ 로그인 화면 제거
-// import 'login_screen.dart';
-
-// ✅ URL 검사 화면 (HomeScreen)으로 변경
-import 'home_screen.dart';
+import 'permission_screen.dart';
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
@@ -13,10 +9,9 @@ class OnboardingScreen extends StatefulWidget {
 }
 
 class _OnboardingScreenState extends State<OnboardingScreen> {
-  final PageController _pageController = PageController(); // 슬라이드 제어
-  int _currentPage = 0; // 현재 페이지 index
+  final PageController _pageController = PageController();
+  int _currentPage = 0;
 
-  // 온보딩에 보여줄 페이지 데이터
   final List<Map<String, dynamic>> _pages = [
     {
       'icon': Icons.security,
@@ -38,6 +33,13 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     },
   ];
 
+  void _goToPermission() {
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => const PermissionScreen()),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Theme(
@@ -54,21 +56,12 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         body: SafeArea(
           child: Column(
             children: [
-              // 🔹 상단 "건너뛰기" 버튼
               Align(
                 alignment: Alignment.topRight,
                 child: Padding(
                   padding: const EdgeInsets.all(16),
                   child: TextButton(
-                    onPressed: () {
-                      // ❗ 로그인 대신 바로 URL 검사 화면으로 이동
-                      Navigator.pushReplacement(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const HomeScreen(),
-                        ),
-                      );
-                    },
+                    onPressed: _goToPermission,
                     child: const Text(
                       '건너뛰기',
                       style: TextStyle(fontSize: 16, color: Color(0xFF757575)),
@@ -76,8 +69,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   ),
                 ),
               ),
-
-              // 🔹 슬라이딩 페이지 영역
               Expanded(
                 child: PageView.builder(
                   controller: _pageController,
@@ -87,13 +78,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   },
                   itemBuilder: (context, index) {
                     final page = _pages[index];
-
                     return Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 32),
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          // 아이콘 영역
                           Container(
                             width: 140,
                             height: 140,
@@ -107,10 +96,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                               color: page['color'] as Color,
                             ),
                           ),
-
                           const SizedBox(height: 48),
-
-                          // 제목
                           Text(
                             page['title'] as String,
                             textAlign: TextAlign.center,
@@ -121,10 +107,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                               color: Color(0xFF212121),
                             ),
                           ),
-
                           const SizedBox(height: 20),
-
-                          // 설명
                           Text(
                             page['desc'] as String,
                             textAlign: TextAlign.center,
@@ -140,13 +123,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   },
                 ),
               ),
-
-              // 🔹 하단 영역
               Padding(
                 padding: const EdgeInsets.all(32),
                 child: Column(
                   children: [
-                    // 페이지 인디케이터 (점)
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: List.generate(
@@ -165,29 +145,19 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                         ),
                       ),
                     ),
-
                     const SizedBox(height: 32),
-
-                    // 🔹 다음 / 시작하기 버튼
                     SizedBox(
                       width: double.infinity,
                       height: 60,
                       child: ElevatedButton(
                         onPressed: () {
                           if (_currentPage < _pages.length - 1) {
-                            // 다음 페이지로 이동
                             _pageController.nextPage(
                               duration: const Duration(milliseconds: 300),
                               curve: Curves.easeInOut,
                             );
                           } else {
-                            // ❗ 마지막 페이지 → 로그인 대신 바로 URL 검사 화면으로 이동
-                            Navigator.pushReplacement(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => const HomeScreen(),
-                              ),
-                            );
+                            _goToPermission();
                           }
                         },
                         style: ElevatedButton.styleFrom(

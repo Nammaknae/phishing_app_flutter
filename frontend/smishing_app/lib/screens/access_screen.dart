@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import '../app_state.dart';
 import 'onboarding_screen.dart';
+import 'home_screen.dart';
 
 class AccessScreen extends StatefulWidget {
   const AccessScreen({super.key});
@@ -14,14 +16,21 @@ class _AccessScreenState extends State<AccessScreen> {
   void initState() {
     super.initState();
 
-    // 3초 후 온보딩 화면으로 이동
     Timer(const Duration(seconds: 3), () {
       if (!mounted) return;
 
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const OnboardingScreen()),
-      );
+      // 이미 권한 동의했으면 온보딩 스킵하고 바로 홈으로
+      if (appState.hasAgreedPermission) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const HomeScreen()),
+        );
+      } else {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const OnboardingScreen()),
+        );
+      }
     });
   }
 
@@ -29,7 +38,6 @@ class _AccessScreenState extends State<AccessScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
-        // 배경 그라데이션
         decoration: const BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topLeft,
@@ -40,7 +48,6 @@ class _AccessScreenState extends State<AccessScreen> {
         child: SafeArea(
           child: Stack(
             children: [
-              // 배경 장식 원 1
               Positioned(
                 top: -60,
                 right: -40,
@@ -53,8 +60,6 @@ class _AccessScreenState extends State<AccessScreen> {
                   ),
                 ),
               ),
-
-              // 배경 장식 원 2
               Positioned(
                 bottom: -80,
                 left: -50,
@@ -67,15 +72,12 @@ class _AccessScreenState extends State<AccessScreen> {
                   ),
                 ),
               ),
-
-              // 메인 내용
               Center(
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 28),
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      // 로고 박스
                       Container(
                         width: 120,
                         height: 120,
@@ -100,10 +102,7 @@ class _AccessScreenState extends State<AccessScreen> {
                           color: Colors.white,
                         ),
                       ),
-
                       const SizedBox(height: 28),
-
-                      // 앱 이름
                       const Text(
                         '스미싱 탐지기',
                         style: TextStyle(
@@ -113,10 +112,7 @@ class _AccessScreenState extends State<AccessScreen> {
                           letterSpacing: 0.5,
                         ),
                       ),
-
                       const SizedBox(height: 12),
-
-                      // 설명 문구
                       const Text(
                         '의심스러운 문자와 URL을 \n빠르고 안전하게 검사하세요',
                         textAlign: TextAlign.center,
@@ -126,10 +122,7 @@ class _AccessScreenState extends State<AccessScreen> {
                           height: 1.5,
                         ),
                       ),
-
                       const SizedBox(height: 36),
-
-                      // 로딩 바 + 문구
                       Column(
                         children: [
                           SizedBox(
@@ -137,19 +130,14 @@ class _AccessScreenState extends State<AccessScreen> {
                             height: 36,
                             child: CircularProgressIndicator(
                               strokeWidth: 3.5,
-                              valueColor: AlwaysStoppedAnimation<Color>(
-                                Colors.white,
-                              ),
+                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                               backgroundColor: Colors.white24,
                             ),
                           ),
                           const SizedBox(height: 14),
                           const Text(
                             '보안 환경을 준비하고 있습니다...',
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: Colors.white70,
-                            ),
+                            style: TextStyle(fontSize: 14, color: Colors.white70),
                           ),
                         ],
                       ),
@@ -157,8 +145,6 @@ class _AccessScreenState extends State<AccessScreen> {
                   ),
                 ),
               ),
-
-              // 하단 문구
               const Positioned(
                 bottom: 24,
                 left: 0,
