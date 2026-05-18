@@ -328,9 +328,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
 사용자 보호 및 안전한 서비스 제공을 위해 개인정보 보호 정책을 준수합니다.
 
-7. 문의
 
-이메일: true3042@gmail.com
                               ''',
                               style: TextStyle(fontSize: 15, height: 1.5),
                             ),
