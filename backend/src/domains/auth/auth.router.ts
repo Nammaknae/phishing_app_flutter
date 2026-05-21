@@ -21,7 +21,7 @@ authRouter.post("/oauth", authController.oauth);
 authRouter.get("/kakao", (req, res) => {
   
   const KAKAO_CLIENT_ID = "YOUR_KAKAO_CLIENT_ID"; 
-  const KAKAO_REDIRECT_URI = "https://smishing-team012.duckdns.org/api/auth/kakao/callback"; 
+  const KAKAO_REDIRECT_URI = "https://smishingteam012.duckdns.org/api/auth/kakao/callback"; 
   const kakaoUrl = `https://kauth.kakao.com/oauth/authorize?client_id=${KAKAO_CLIENT_ID}&redirect_uri=${KAKAO_REDIRECT_URI}&response_type=code`;
   
   res.redirect(kakaoUrl);
@@ -31,7 +31,7 @@ authRouter.get("/kakao", (req, res) => {
 authRouter.get("/naver", (req, res) => {
   
   const NAVER_CLIENT_ID = "YOUR_NAVER_CLIENT_ID";
-  const NAVER_REDIRECT_URI = "https://smishing-team012.duckdns.org/api/auth/naver/callback"; 
+  const NAVER_REDIRECT_URI = "https://smishingteam012.duckdns.org/api/auth/naver/callback"; 
   const state = Math.random().toString(36).substring(3, 14); // 보안용 랜덤 문자열
   const naverUrl = `https://nid.naver.com/oauth2.0/authorize?response_type=code&client_id=${NAVER_CLIENT_ID}&redirect_uri=${NAVER_REDIRECT_URI}&state=${state}`;
   
@@ -42,7 +42,7 @@ authRouter.get("/naver", (req, res) => {
 authRouter.get("/google", (req, res) => {
   
   const GOOGLE_CLIENT_ID = "YOUR_GOOGLE_CLIENT_ID";
-  const GOOGLE_REDIRECT_URI = "https://smishing-team012.duckdns.org/api/auth/google/callback";
+  const GOOGLE_REDIRECT_URI = "https://smishingteam012.duckdns.org/api/auth/google/callback";
 
   const params = new URLSearchParams({
     client_id: GOOGLE_CLIENT_ID,
