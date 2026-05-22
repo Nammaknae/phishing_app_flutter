@@ -371,8 +371,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     '로그아웃',
                     style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
                   ),
-                  onPressed: () {
-                    appState.logout();
+                  onPressed: () async {
+                    await appState.logout();
+                    if (!context.mounted) return;
                     Navigator.pushReplacement(
                       context,
                       MaterialPageRoute(

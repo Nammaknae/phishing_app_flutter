@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
 import '../app_state.dart';
 import 'onboarding_screen.dart';
@@ -15,23 +14,29 @@ class _AccessScreenState extends State<AccessScreen> {
   @override
   void initState() {
     super.initState();
+    _bootstrap();
+  }
 
-    Timer(const Duration(seconds: 3), () {
-      if (!mounted) return;
+  Future<void> _bootstrap() async {
+    // 스플래시 동안 JWT 세션 복구 시도
+    await Future.wait([
+      appState.restoreSession(),
+      Future<void>.delayed(const Duration(seconds: 2)),
+    ]);
 
-      // 이미 권한 동의했으면 온보딩 스킵하고 바로 홈으로
-      if (appState.hasAgreedPermission) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const HomeScreen()),
-        );
-      } else {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const OnboardingScreen()),
-        );
-      }
-    });
+    if (!mounted) return;
+    // 권한 동의 여부에 따라온보딩 화면으로 이동하거나 홈 화면으로 이동
+    if (appState.hasAgreedPermission) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const HomeScreen()),
+      );
+    } else {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const OnboardingScreen()),
+      );
+    }
   }
 
   @override
@@ -130,14 +135,20 @@ class _AccessScreenState extends State<AccessScreen> {
                             height: 36,
                             child: CircularProgressIndicator(
                               strokeWidth: 3.5,
-                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                              valueColor:
+                                  AlwaysStoppedAnimation<Color>(Colors.white),
                               backgroundColor: Colors.white24,
                             ),
                           ),
                           const SizedBox(height: 14),
-                          const Text(
-                            '보안 환경을 준비하고 있습니다...',
-                            style: TextStyle(fontSize: 14, color: Colors.white70),
+                          Text(
+                            appState.isAuthLoading
+                                ? '로그인 세션을 확인하고 있습니다...'
+                                : '보안 환경을 준비하고 있습니다...',
+                            style: const TextStyle(
+                              fontSize: 14,
+                              color: Colors.white70,
+                            ),
                           ),
                         ],
                       ),

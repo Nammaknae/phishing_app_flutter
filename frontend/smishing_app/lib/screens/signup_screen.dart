@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+import '../app_state.dart';
+import '../services/api_client.dart';
+import '../services/auth_api_service.dart';
+import 'home_screen.dart';
 import 'login_screen.dart';
 
 class SignupScreen extends StatefulWidget {
@@ -16,6 +20,7 @@ class _SignupScreenState extends State<SignupScreen> {
   bool _obscurePassword = true;
   bool _obscureConfirm = true;
   bool _agreeTerms = false;
+  bool _isLoading = false;
 
   void _showDialog(String title, String message, {bool isSuccess = false}) {
     showDialog(
@@ -96,17 +101,24 @@ class _SignupScreenState extends State<SignupScreen> {
     );
   }
 
-  void _handleSignup() {
-    if (_nameController.text.trim().isEmpty) {
+  bool _isValidEmail(String value) {
+    return RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(value);
+  }
+
+  Future<void> _handleSignup() async {
+    final name = _nameController.text.trim();
+    final email = _idController.text.trim();
+    final password = _pwController.text;
+    // 이름 입력 체크
+    if (name.isEmpty) {
       _showDialog('입력 오류', '이름을 입력해주세요');
       return;
     }
 
-    // 이름 유효성 검사 (한글, 영어, 다른 언어만 허용)
     final nameRegex = RegExp(
       r'^[\uAC00-\uD7A3a-zA-Z\u3040-\u30FF\u4E00-\u9FFF ]+$',
     );
-    if (!nameRegex.hasMatch(_nameController.text.trim())) {
+    if (!nameRegex.hasMatch(name)) {
       _showDialog(
         '이름 형식 오류',
         '이름에는 숫자나 특수문자를\n사용할 수 없습니다.\n한글, 영어, 다른 언어만 입력해주세요',
@@ -114,15 +126,23 @@ class _SignupScreenState extends State<SignupScreen> {
       return;
     }
 
-    if (_idController.text.trim().isEmpty) {
-      _showDialog('입력 오류', '아이디를 입력해주세요');
+    if (email.isEmpty) {
+      _showDialog('입력 오류', '이메일을 입력해주세요');
       return;
     }
-    if (_pwController.text.isEmpty) {
+    if (!_isValidEmail(email)) {
+      _showDialog('입력 오류', '올바른 이메일 형식을 입력해주세요');
+      return;
+    }
+    if (password.isEmpty) {
       _showDialog('입력 오류', '비밀번호를 입력해주세요');
       return;
     }
-    if (_pwController.text != _pwConfirmController.text) {
+    if (password.length < 6) {
+      _showDialog('입력 오류', '비밀번호는 6자 이상이어야 합니다');
+      return;
+    }
+    if (password != _pwConfirmController.text) {
       _showDialog('비밀번호 오류', '비밀번호가 일치하지 않습니다.\n다시 확인해주세요');
       return;
     }
@@ -130,11 +150,28 @@ class _SignupScreenState extends State<SignupScreen> {
       _showDialog('약관 동의', '이용약관 및 개인정보 처리방침에\n동의해주세요');
       return;
     }
-    _showDialog(
-      '회원가입 완료',
-      '회원가입이 완료되었습니다!\n로그인 화면으로 이동합니다',
-      isSuccess: true,
-    );
+
+    setState(() => _isLoading = true);
+
+    try {
+      final result = await AuthApiService.signup(
+        email: email,
+        password: password,
+      );
+      appState.setAuthenticatedSession(result.user, displayName: name);
+
+      if (!mounted) return;
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const HomeScreen()),
+      );
+    } on ApiException catch (e) {
+      _showDialog('회원가입 실패', e.message);
+    } catch (_) {
+      _showDialog('회원가입 실패', '회원가입 중 오류가 발생했습니다');
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
   @override
@@ -193,9 +230,9 @@ class _SignupScreenState extends State<SignupScreen> {
 
               const SizedBox(height: 16),
 
-              // 아이디
+              // 이메일 (백엔드 로그인 ID)
               const Text(
-                '아이디',
+                '이메일',
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
               ),
               const SizedBox(height: 8),
@@ -203,7 +240,7 @@ class _SignupScreenState extends State<SignupScreen> {
                 controller: _idController,
                 style: const TextStyle(fontSize: 18),
                 decoration: InputDecoration(
-                  hintText: '아이디를 입력하세요',
+                  hintText: 'example@email.com',
                   prefixIcon: const Icon(
                     Icons.person_outline,
                     size: 28,
@@ -347,7 +384,7 @@ class _SignupScreenState extends State<SignupScreen> {
                 width: double.infinity,
                 height: 60,
                 child: ElevatedButton(
-                  onPressed: _handleSignup,
+                  onPressed: _isLoading ? null : _handleSignup,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF1976D2),
                     foregroundColor: Colors.white,
@@ -355,13 +392,22 @@ class _SignupScreenState extends State<SignupScreen> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  child: const Text(
-                    '회원가입',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+                  child: _isLoading
+                      ? const SizedBox(
+                          width: 24,
+                          height: 24,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2.5,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Text(
+                          '회원가입',
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                 ),
               ),
 

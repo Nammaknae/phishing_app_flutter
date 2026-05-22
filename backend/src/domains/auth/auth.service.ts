@@ -1,7 +1,7 @@
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import { z } from "zod";
-import type { Prisma } from "@prisma/client";
+import { Prisma } from "@prisma/client";
 import { prisma } from "../../db/prisma";
 import { env } from "../../config/env";
 
@@ -50,23 +50,36 @@ export class AuthService {
 
     // users(공통) + user_local_auth(이메일 인증) 를 트랜잭션으로 묶어서
     // 중간 실패 시 "유저만 생성되고 auth가 없는" 상태를 방지합니다.
-    const user = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
-      const createdUser = await tx.user.create({
-        data: { role: "USER" },
-        select: { id: true, role: true },
-      });
+    let user: { id: bigint; role: "USER" | "ADMIN" };
+    try {
+      user = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+        const createdUser = await tx.user.create({
+          data: { role: "USER" },
+          select: { id: true, role: true },
+        });
 
-      await tx.userLocalAuth.create({
-        data: {
-          userId: createdUser.id,
-          email: input.email,
-          passwordHash,
-        },
-        select: { userId: true },
-      });
+        await tx.userLocalAuth.create({
+          data: {
+            userId: createdUser.id,
+            email: input.email,
+            passwordHash,
+          },
+          select: { userId: true },
+        });
 
-      return createdUser;
-    });
+        return createdUser;
+      });
+    } catch (err) {
+      if (
+        err instanceof Prisma.PrismaClientKnownRequestError &&
+        err.code === "P2002"
+      ) {
+        const duplicate = new Error("Email already registered");
+        (duplicate as any).statusCode = 409;
+        throw duplicate;
+      }
+      throw err;
+    }
 
     const token = signAccessToken({
       userId: user.id.toString(),
