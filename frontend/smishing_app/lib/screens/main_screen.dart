@@ -241,16 +241,12 @@ class _MainScreenState extends State<MainScreen> {
       return;
     }
 
-    final RegExp urlRegex = RegExp("(https?:\\/\\/|www\\.)[^\\s<>\\\"]+");
-    final Match? urlMatch = urlRegex.firstMatch(inputText);
-    if (urlMatch == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('URL이 포함된 텍스트를 입력해주세요')),
-      );
-      return;
-    }
+final RegExp urlRegex = RegExp(r'(https?:\/\/|www\.)[^\s<>"]+');
+final Match? urlMatch = urlRegex.firstMatch(inputText);
 
-    final String detectedUrl = urlMatch.group(0)!.startsWith('www.')
+final String detectedUrl = urlMatch == null
+    ? ''
+    : urlMatch.group(0)!.startsWith('www.')
         ? 'https://${urlMatch.group(0)!}'
         : urlMatch.group(0)!;
 
@@ -355,10 +351,11 @@ class _MainScreenState extends State<MainScreen> {
     String? errorMessage;
 
     try {
-      final response = await ApiService.scanUrl(
+      final response = await ApiService.scanText(
         deviceId: 'android-test-device',
-        url: detectedUrl,
+        content: inputText,
         sourceApp: 'manual_input',
+        sender: 'manual',
       );
 
       finalRiskGrade =
