@@ -1,12 +1,14 @@
 class UserProfile {
   final String id;
   final String role;
+  final String? name;
   final String? email;
   final List<SocialAccount> socials;
 
   const UserProfile({
     required this.id,
     required this.role,
+    this.name,
     this.email,
     this.socials = const [],
   });
@@ -27,6 +29,7 @@ class UserProfile {
     return UserProfile(
       id: json['id']?.toString() ?? '',
       role: json['role']?.toString() ?? 'USER',
+      name: json['name']?.toString(),
       email: json['email']?.toString(),
       socials: socials,
     );

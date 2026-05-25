@@ -58,19 +58,25 @@ class AppState extends ChangeNotifier {
     _smishingAlert = !_smishingAlert;
     notifyListeners();
   }
-
+  Future<void> updateUserName(String name) async {
+    final profile = await AuthApiService.updateMe(name: name);
+    _applyUserProfile(profile, displayName: profile.name ?? name);
+    notifyListeners();
+  }
   void toggleCautionAlert() {
     _cautionAlert = !_cautionAlert;
     notifyListeners();
   }
 
-  void _applyUserProfile(UserProfile profile, {String? displayName}) {
-    _userId = profile.id;
-    _userEmail = profile.email ?? '';
-    _userName = displayName ?? _emailToDisplayName(_userEmail);
-    _isLoggedIn = true;
-    _guestScanCount = 0;
-  }
+void _applyUserProfile(UserProfile profile, {String? displayName}) {
+  _userId = profile.id;
+  _userEmail = profile.email ?? '';
+  _userName = displayName ??
+      profile.name ??
+      _emailToDisplayName(_userEmail);
+  _isLoggedIn = true;
+  _guestScanCount = 0;
+}
 
   String _emailToDisplayName(String email) {
     if (email.isEmpty) return '사용자';
