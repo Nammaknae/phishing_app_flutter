@@ -70,7 +70,18 @@ class ApiClient {
     );
     return _parseJsonResponse(response);
   }
-
+  static Future<Map<String, dynamic>> patch(
+    String path, {
+    Map<String, dynamic>? body,
+    bool withAuth = true,
+  }) async {
+    final response = await http.patch(
+      _uri(path),
+      headers: await _headers(withAuth: withAuth),
+      body: body == null ? null : jsonEncode(body),
+    );
+    return _parseJsonResponse(response);
+  }
   static Future<Map<String, dynamic>> delete(
     String path, {
     bool withAuth = true,

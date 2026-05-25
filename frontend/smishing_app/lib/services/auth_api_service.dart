@@ -28,14 +28,19 @@ class AuthApiService {
     return (accessToken: token, user: UserProfile.fromJson(userJson));
   }
 
-  /// POST /api/auth/signup
+    /// POST /api/auth/signup
   static Future<({String accessToken, UserProfile user})> signup({
+    required String name,
     required String email,
     required String password,
   }) async {
     final data = await ApiClient.post(
       '/api/auth/signup',
-      body: {'email': email, 'password': password},
+      body: {
+        'name': name,
+        'email': email,
+        'password': password,
+      },
       withAuth: false,
     );
 
@@ -58,7 +63,19 @@ class AuthApiService {
     final data = await ApiClient.get('/api/users/me');
     return UserProfile.fromJson(data);
   }
+  /// PATCH /api/users/me
+  static Future<UserProfile> updateMe({
+    required String name,
+  }) async {
+    final data = await ApiClient.patch(
+      '/api/users/me',
+      body: {
+        'name': name,
+      },
+    );
 
+    return UserProfile.fromJson(data);
+  }
   /// DELETE /api/users/me
   static Future<void> deleteAccount() async {
     await ApiClient.delete('/api/users/me');

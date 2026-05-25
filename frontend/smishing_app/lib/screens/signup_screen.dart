@@ -155,6 +155,7 @@ class _SignupScreenState extends State<SignupScreen> {
 
     try {
       final result = await AuthApiService.signup(
+        name: name,
         email: email,
         password: password,
       );
