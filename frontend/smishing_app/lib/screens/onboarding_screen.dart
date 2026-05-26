@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'permission_screen.dart';
+import 'login_screen.dart';
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
@@ -36,7 +36,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   void _goToPermission() {
     Navigator.pushReplacement(
       context,
-      MaterialPageRoute(builder: (context) => const PermissionScreen()),
+      MaterialPageRoute(builder: (context) => const LoginScreen()),
     );
   }
 

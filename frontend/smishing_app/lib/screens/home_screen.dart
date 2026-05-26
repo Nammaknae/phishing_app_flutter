@@ -23,7 +23,7 @@ class _HomeScreenState extends State<HomeScreen> {
       ChatBotScreen(
         onBackHome: () {
           setState(() {
-            _currentIndex = 1; // 홈으로 이동
+            _currentIndex = 1;
           });
         },
       ),
@@ -31,7 +31,7 @@ class _HomeScreenState extends State<HomeScreen> {
       SettingsScreen(
         onBackHome: () {
           setState(() {
-            _currentIndex = 1; // 홈으로 이동
+            _currentIndex = 1;
           });
         },
       ),
@@ -59,7 +59,10 @@ class _HomeScreenState extends State<HomeScreen> {
     return WillPopScope(
       onWillPop: _onWillPop,
       child: Scaffold(
-        body: IndexedStack(index: _currentIndex, children: _screens),
+        body: IndexedStack(
+          index: _currentIndex,
+          children: _screens,
+        ),
         bottomNavigationBar: BottomNavigationBar(
           currentIndex: _currentIndex,
           onTap: _onTapNav,

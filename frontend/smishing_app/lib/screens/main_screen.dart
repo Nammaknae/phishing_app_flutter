@@ -180,8 +180,8 @@ class _MainScreenState extends State<MainScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                      children: const [
+                    const Row(
+                      children: [
                         Icon(
                           Icons.info_outline,
                           size: 18,
@@ -241,14 +241,14 @@ class _MainScreenState extends State<MainScreen> {
       return;
     }
 
-final RegExp urlRegex = RegExp(r'(https?:\/\/|www\.)[^\s<>"]+');
-final Match? urlMatch = urlRegex.firstMatch(inputText);
+    final RegExp urlRegex = RegExp(r'(https?:\/\/|www\.)[^\s<>"]+');
+    final Match? urlMatch = urlRegex.firstMatch(inputText);
 
-final String detectedUrl = urlMatch == null
-    ? ''
-    : urlMatch.group(0)!.startsWith('www.')
-        ? 'https://${urlMatch.group(0)!}'
-        : urlMatch.group(0)!;
+    final String detectedUrl = urlMatch == null
+        ? ''
+        : urlMatch.group(0)!.startsWith('www.')
+            ? 'https://${urlMatch.group(0)!}'
+            : urlMatch.group(0)!;
 
     if (!appState.isLoggedIn) {
       if (!appState.canUseGuestScan) {
@@ -505,6 +505,7 @@ final String detectedUrl = urlMatch == null
     if (normalized.contains('safe')) return 'safe';
     return verdicts.isEmpty ? null : verdicts.first;
   }
+
   Future<void> _clearAllHistory() async {
     await HistoryService.clearHistory();
     await _loadHistory();
@@ -540,9 +541,8 @@ final String detectedUrl = urlMatch == null
 
   @override
   Widget build(BuildContext context) {
-    final int remainingCount = appState.remainingScanCount < 0
-        ? 0
-        : appState.remainingScanCount;
+    final int remainingCount =
+        appState.remainingScanCount < 0 ? 0 : appState.remainingScanCount;
     final int usedCount = 3 - remainingCount;
 
     return Scaffold(
@@ -855,5 +855,3 @@ final String detectedUrl = urlMatch == null
     );
   }
 }
-
-

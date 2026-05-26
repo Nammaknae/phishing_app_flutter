@@ -96,7 +96,8 @@ class _PermissionScreenState extends State<PermissionScreen> {
         elevation: 0,
         title: const Text(
           '권한 설정',
-          style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF212121)),
+          style:
+              TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF212121)),
         ),
       ),
       body: SafeArea(
@@ -114,7 +115,8 @@ class _PermissionScreenState extends State<PermissionScreen> {
                 ),
                 child: const Row(
                   children: [
-                    Icon(Icons.info_outline, color: Color(0xFF1976D2), size: 24),
+                    Icon(Icons.info_outline,
+                        color: Color(0xFF1976D2), size: 24),
                     SizedBox(width: 12),
                     Expanded(
                       child: Text(
@@ -145,19 +147,24 @@ class _PermissionScreenState extends State<PermissionScreen> {
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
                   side: BorderSide(
-                    color: _agreedPrivacy ? const Color(0xFF1976D2) : const Color(0xFFEAEAEA),
+                    color: _agreedPrivacy
+                        ? const Color(0xFF1976D2)
+                        : const Color(0xFFEAEAEA),
                     width: _agreedPrivacy ? 2 : 1,
                   ),
                 ),
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   child: CheckboxListTile(
                     value: _agreedPrivacy,
-                    onChanged: (val) => setState(() => _agreedPrivacy = val ?? false),
+                    onChanged: (val) =>
+                        setState(() => _agreedPrivacy = val ?? false),
                     activeColor: const Color(0xFF1976D2),
                     title: const Text(
                       '개인정보 수집 및 이용 동의 (필수)',
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                      style:
+                          TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                     ),
                     subtitle: GestureDetector(
                       onTap: _showPrivacyDialog,
@@ -183,19 +190,24 @@ class _PermissionScreenState extends State<PermissionScreen> {
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
                   side: BorderSide(
-                    color: _agreedNotification ? const Color(0xFF1976D2) : const Color(0xFFEAEAEA),
+                    color: _agreedNotification
+                        ? const Color(0xFF1976D2)
+                        : const Color(0xFFEAEAEA),
                     width: _agreedNotification ? 2 : 1,
                   ),
                 ),
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   child: CheckboxListTile(
                     value: _agreedNotification,
-                    onChanged: (val) => setState(() => _agreedNotification = val ?? false),
+                    onChanged: (val) =>
+                        setState(() => _agreedNotification = val ?? false),
                     activeColor: const Color(0xFF1976D2),
                     title: const Text(
                       '알림 접근 허용 (필수)',
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                      style:
+                          TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                     ),
                     subtitle: const Padding(
                       padding: EdgeInsets.only(top: 4),
