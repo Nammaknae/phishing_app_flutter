@@ -56,15 +56,59 @@ class ResultScreen extends StatelessWidget {
     this.errorMessage,
   });
 
-  String get _gradeText => (finalRiskGrade ?? label).toUpperCase();
+  String get _gradeText {
+    final grade = (finalRiskGrade ?? label).toUpperCase();
+
+    switch (grade) {
+      case 'SAFE':
+      case 'SUCCESS':
+        return '안전';
+
+      case 'SUSPICIOUS':
+      case 'WARNING':
+      case 'CAUTION':
+        return '주의';
+
+      case 'DANGER':
+      case 'RISK':
+      case 'MALICIOUS':
+        return '위험';
+
+      default:
+        return '주의';
+    }
+  }
+
+  String _toKoreanGrade(String? value) {
+    if (value == null || value.trim().isEmpty) return '-';
+
+    switch (value.toUpperCase()) {
+      case 'SAFE':
+      case 'SUCCESS':
+        return '안전';
+
+      case 'SUSPICIOUS':
+      case 'WARNING':
+      case 'CAUTION':
+        return '주의';
+
+      case 'DANGER':
+      case 'RISK':
+      case 'MALICIOUS':
+        return '위험';
+
+      default:
+        return value;
+    }
+  }
 
   Color get _gradeColor {
     switch (_gradeText) {
-      case 'DANGER':
+      case '위험':
         return const Color(0xFFE53935);
-      case 'SUSPICIOUS':
+      case '주의':
         return const Color(0xFFFF7A00);
-      case 'SAFE':
+      case '안전':
         return const Color(0xFF2E7D32);
       default:
         return const Color(0xFF1976D2);
@@ -73,11 +117,11 @@ class ResultScreen extends StatelessWidget {
 
   IconData get _gradeIcon {
     switch (_gradeText) {
-      case 'DANGER':
+      case '위험':
         return Icons.dangerous_outlined;
-      case 'SUSPICIOUS':
+      case '주의':
         return Icons.warning_amber_rounded;
-      case 'SAFE':
+      case '안전':
         return Icons.check_circle_outline;
       default:
         return Icons.help_outline;
@@ -86,12 +130,12 @@ class ResultScreen extends StatelessWidget {
 
   String get _shortSummary {
     switch (_gradeText) {
-      case 'DANGER':
-        return '위험한 패턴이 발견되었어요.\n링크를 누르거나 답장하지 마세요.';
-      case 'SUSPICIOUS':
-        return '입력하신 내용은 의심되는 패턴을 포함하고 있어요.\n공식 사이트나 신뢰 가능한 출처에서 한 번 더 확인해 주세요.';
-      case 'SAFE':
-        return '현재 입력 내용에서는 큰 위험 신호가 보이지 않아요.\n그래도 개인정보 입력은 신중하게 확인해 주세요.';
+      case '위험':
+        return '위험한 패턴이 발견되었어요.\n링크를 누르거나 개인정보를 입력하지 마세요.';
+      case '주의':
+        return '의심스러운 요소가 발견되었어요.\n공식 사이트나 신뢰 가능한 출처에서 한 번 더 확인해 주세요.';
+      case '안전':
+        return '현재 검사 결과 위험 요소가 발견되지 않았어요.\n그래도 개인정보 입력 전에는 항상 확인하세요.';
       default:
         return '검사 결과를 확인했어요.\n필요하면 AI 상담사에게 자세히 물어보세요.';
     }
@@ -102,12 +146,14 @@ class ResultScreen extends StatelessWidget {
     return safeBrowsing.map((item) {
       final url = item['url']?.toString() ?? '-';
       final isMalicious = item['isMalicious'] == true;
-      return '${isMalicious ? 'malicious' : 'safe'} ($url)';
+      return '${isMalicious ? '위험' : '안전'} ($url)';
     }).join('\n');
   }
 
-  String _formatBool(bool? value) =>
-      value == null ? '-' : (value ? 'true' : 'false');
+  String _formatBool(bool? value) {
+    if (value == null) return '-';
+    return value ? '사용됨' : '사용 안 됨';
+  }
 
   String _formatDouble(double? value, {int fraction = 6}) {
     if (value == null) return '-';
@@ -194,14 +240,17 @@ class ResultScreen extends StatelessWidget {
                 icon: Icons.description_outlined,
                 child: Column(
                   children: [
-                    _InfoRow('입력 텍스트',
-                        sourceApp.isEmpty ? 'manual_input' : sourceApp),
+                    _InfoRow(
+                      '입력 방식',
+                      sourceApp.isEmpty ? '직접 입력' : sourceApp,
+                    ),
                     _InfoRow('분류', kcelectraIntent ?? '-'),
                     _InfoRow('판정', _gradeText, valueColor: _gradeColor),
                     _InfoRow(
-                        '최종 점수',
-                        finalRiskScore?.toString() ??
-                            riskPercent.toInt().toString()),
+                      '최종 점수',
+                      finalRiskScore?.toString() ??
+                          riskPercent.toInt().toString(),
+                    ),
                     _InfoRow('분석 시간', analyzedAt ?? '-'),
                   ],
                 ),
@@ -213,11 +262,15 @@ class ResultScreen extends StatelessWidget {
                 child: Column(
                   children: [
                     _InfoRow(
-                        '탐지 엔진', kcelectraUsed == true ? 'KcELECTRA' : '-'),
+                      '탐지 엔진',
+                      kcelectraUsed == true ? 'KcELECTRA' : '-',
+                    ),
                     _InfoRow('점수', _formatDouble(kcelectraScore)),
                     _InfoRow('의도', kcelectraIntent ?? '-'),
                     _InfoRow(
-                        '판정', kcelectraVerdict ?? _gradeText.toLowerCase()),
+                      '판정',
+                      _toKoreanGrade(kcelectraVerdict ?? _gradeText),
+                    ),
                   ],
                 ),
               ),
@@ -301,13 +354,13 @@ class ResultScreen extends StatelessWidget {
               _HiddenDetail(
                 title: '고급 탐지 정보',
                 content: 'Safe Browsing: ${_formatSafeBrowsing()}\n'
-                    'XGBoost used: ${_formatBool(xgboostUsed)}\n'
-                    'XGBoost score: ${_formatDouble(xgboostScore)}\n'
-                    'XGBoost verdict: ${xgboostVerdict ?? '-'}\n'
-                    'KcELECTRA used: ${_formatBool(kcelectraUsed)}\n'
-                    'KcELECTRA score: ${_formatDouble(kcelectraScore)}\n'
-                    'KcELECTRA intent: ${kcelectraIntent ?? '-'}\n'
-                    'KcELECTRA verdict: ${kcelectraVerdict ?? '-'}',
+                    'XGBoost 사용 여부: ${_formatBool(xgboostUsed)}\n'
+                    'XGBoost 점수: ${_formatDouble(xgboostScore)}\n'
+                    'XGBoost 판정: ${_toKoreanGrade(xgboostVerdict)}\n'
+                    'KcELECTRA 사용 여부: ${_formatBool(kcelectraUsed)}\n'
+                    'KcELECTRA 점수: ${_formatDouble(kcelectraScore)}\n'
+                    'KcELECTRA 의도: ${kcelectraIntent ?? '-'}\n'
+                    'KcELECTRA 판정: ${_toKoreanGrade(kcelectraVerdict)}',
               ),
             ],
           ),
