@@ -18,6 +18,9 @@ class _AccessScreenState extends State<AccessScreen> {
   }
 
   Future<void> _bootstrap() async {
+    // SharedPreferences에서 저장된 상태 먼저 불러오기 (동의 여부, 게스트 횟수)
+    await appState.loadPersistedState();
+
     // 스플래시 동안 JWT 세션 복구 시도
     await Future.wait([
       appState.restoreSession(),
@@ -25,18 +28,30 @@ class _AccessScreenState extends State<AccessScreen> {
     ]);
 
     if (!mounted) return;
-    // 권한 동의 여부에 따라온보딩 화면으로 이동하거나 홈 화면으로 이동
+
+    // 로그인된 사용자 → 바로 홈으로
+    if (appState.isLoggedIn) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const HomeScreen()),
+      );
+      return;
+    }
+
+    // 비로그인이지만 이미 약관 동의한 경우 → 홈으로
     if (appState.hasAgreedPermission) {
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (context) => const HomeScreen()),
       );
-    } else {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const OnboardingScreen()),
-      );
+      return;
     }
+
+    // 처음 실행 or 동의 안 한 경우 → 온보딩으로
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => const OnboardingScreen()),
+    );
   }
 
   @override
@@ -130,13 +145,12 @@ class _AccessScreenState extends State<AccessScreen> {
                       const SizedBox(height: 36),
                       Column(
                         children: [
-                          SizedBox(
+                          const SizedBox(
                             width: 36,
                             height: 36,
                             child: CircularProgressIndicator(
                               strokeWidth: 3.5,
-                              valueColor:
-                                  AlwaysStoppedAnimation<Color>(Colors.white),
+                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                               backgroundColor: Colors.white24,
                             ),
                           ),

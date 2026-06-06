@@ -8,7 +8,9 @@ import 'models/notification_item.dart';
 import 'screens/access_screen.dart';
 import 'services/api_service.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await appState.loadPersistedState();
   runApp(const MyApp());
 }
 
@@ -151,7 +153,8 @@ class _NotificationBridgeState extends State<NotificationBridge> {
       },
       onError: (Object error) {
         final bool missingPlugin =
-            error is MissingPluginException || error.toString().contains('MissingPluginException');
+            error is MissingPluginException ||
+            error.toString().contains('MissingPluginException');
 
         if (missingPlugin) {
           _bindEventChannel(index + 1);
@@ -201,11 +204,10 @@ class _NotificationBridgeState extends State<NotificationBridge> {
     );
 
     final List<String> urlsFromPayload = _toStringList(map['urls']);
-    final List<String> urls = urlsFromPayload.isNotEmpty ? urlsFromPayload : _extractUrls(text);
+    final List<String> urls =
+        urlsFromPayload.isNotEmpty ? urlsFromPayload : _extractUrls(text);
 
-    if (urls.isEmpty) {
-      return;
-    }
+    if (urls.isEmpty) return;
 
     final String firstUrl = urls.first;
 
@@ -251,26 +253,18 @@ class _NotificationBridgeState extends State<NotificationBridge> {
 
   Future<void> _showRiskAlertIfNeeded(NotificationItem item) async {
     final String grade = (item.finalRiskGrade ?? '').toUpperCase();
-    if (grade != 'DANGER' && grade != 'SUSPICIOUS') {
-      return;
-    }
+    if (grade != 'DANGER' && grade != 'SUSPICIOUS') return;
 
     if (item.resultId != null && item.resultId!.isNotEmpty) {
-      if (_alertedResultIds.contains(item.resultId)) {
-        return;
-      }
+      if (_alertedResultIds.contains(item.resultId)) return;
       _alertedResultIds.add(item.resultId!);
     } else {
       final String fallbackKey = _fallbackAlertKey(item);
-      if (_alertedFallbackKeys.contains(fallbackKey)) {
-        return;
-      }
+      if (_alertedFallbackKeys.contains(fallbackKey)) return;
       _alertedFallbackKeys.add(fallbackKey);
     }
 
-    if (_isAlertOpen) {
-      return;
-    }
+    if (_isAlertOpen) return;
 
     final BuildContext? context = widget.navigatorKey.currentContext;
     if (context == null) return;
@@ -348,17 +342,14 @@ class _NotificationBridgeState extends State<NotificationBridge> {
     for (final String key in keys) {
       final dynamic value = source[key];
       if (value == null) continue;
-
       final String text = value.toString().trim();
       if (text.isNotEmpty) return text;
     }
-
     return fallback;
   }
 
   List<String> _toStringList(dynamic raw) {
     if (raw is! List) return const <String>[];
-
     return raw
         .map((dynamic e) => e.toString().trim())
         .where((String e) => e.isNotEmpty)
@@ -392,9 +383,12 @@ class _NotificationBridgeState extends State<NotificationBridge> {
             child: Material(
               elevation: 2,
               borderRadius: BorderRadius.circular(10),
-              color: _streamError == null ? Colors.black.withValues(alpha: 0.65) : Colors.red.withValues(alpha: 0.9),
+              color: _streamError == null
+                  ? Colors.black.withValues(alpha: 0.65)
+                  : Colors.red.withValues(alpha: 0.9),
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                 child: Text(
                   _streamError ?? '알림 수신 채널: $_boundChannel',
                   style: const TextStyle(color: Colors.white, fontSize: 12),
@@ -405,7 +399,8 @@ class _NotificationBridgeState extends State<NotificationBridge> {
         if (_items.isNotEmpty)
           Positioned(
             right: 14,
-            bottom: (_boundChannel != null || _streamError != null) ? 56 : 14,
+            bottom:
+                (_boundChannel != null || _streamError != null) ? 56 : 14,
             child: FloatingActionButton.extended(
               heroTag: 'notif_result_fab',
               onPressed: () => _openDetailSheet(context, _items.first),
@@ -556,7 +551,8 @@ class _NotificationResultCard extends StatelessWidget {
         .join('\n');
   }
 
-  String _d(double? value, {int n = 6}) => value == null ? '-' : value.toStringAsFixed(n);
+  String _d(double? value, {int n = 6}) =>
+      value == null ? '-' : value.toStringAsFixed(n);
   String _b(bool? value) => value == null ? '-' : value.toString();
 
   @override
@@ -580,7 +576,8 @@ class _NotificationResultCard extends StatelessWidget {
                   ),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                   decoration: BoxDecoration(
                     color: color.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(999),
@@ -588,7 +585,8 @@ class _NotificationResultCard extends StatelessWidget {
                   ),
                   child: Text(
                     grade,
-                    style: TextStyle(color: color, fontWeight: FontWeight.w700),
+                    style: TextStyle(
+                        color: color, fontWeight: FontWeight.w700),
                   ),
                 ),
               ],
@@ -599,13 +597,16 @@ class _NotificationResultCard extends StatelessWidget {
             Text('URL: ${item.urls.isEmpty ? '-' : item.urls.join(', ')}'),
             Text('최종 점수: ${item.finalRiskScore?.toString() ?? '-'}'),
             Text('Safe Browsing: ${_safeBrowsingText(item.safeBrowsing)}'),
-            Text('XGBoost used/score/verdict: ${_b(item.xgboostUsed)} / ${_d(item.xgboostScore)} / ${item.xgboostVerdict ?? '-'}'),
-            Text('KcELECTRA used/score/intent/verdict: ${_b(item.kcelectraUsed)} / ${_d(item.kcelectraScore)} / ${item.kcelectraIntent ?? '-'} / ${item.kcelectraVerdict ?? '-'}'),
+            Text(
+                'XGBoost used/score/verdict: ${_b(item.xgboostUsed)} / ${_d(item.xgboostScore)} / ${item.xgboostVerdict ?? '-'}'),
+            Text(
+                'KcELECTRA used/score/intent/verdict: ${_b(item.kcelectraUsed)} / ${_d(item.kcelectraScore)} / ${item.kcelectraIntent ?? '-'} / ${item.kcelectraVerdict ?? '-'}'),
             Text('분석 시각: ${item.analyzedAt ?? '-'}'),
             if (item.errorMessage != null && item.errorMessage!.isNotEmpty)
               Text(
                 '에러: ${item.errorMessage}',
-                style: const TextStyle(color: Colors.red, fontWeight: FontWeight.w700),
+                style: const TextStyle(
+                    color: Colors.red, fontWeight: FontWeight.w700),
               ),
           ],
         ),

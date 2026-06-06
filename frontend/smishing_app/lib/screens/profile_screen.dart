@@ -50,36 +50,144 @@ class _ProfileScreenState extends State<ProfileScreen> {
             child: const Text('취소'),
           ),
           TextButton(
-onPressed: () async {
-  final name = _nameController.text.trim();
-
-  if (name.isEmpty) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('닉네임을 입력해주세요')),
-    );
-    return;
-  }
-
-  try {
-    await appState.updateUserName(name);
-
-    if (!context.mounted) return;
-
-    Navigator.pop(context);
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('닉네임이 수정되었습니다')),
-    );
-  } catch (_) {
-    if (!context.mounted) return;
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('닉네임 수정 중 오류가 발생했습니다')),
-    );
-  }
-},
+            onPressed: () async {
+              final name = _nameController.text.trim();
+              if (name.isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('닉네임을 입력해주세요')),
+                );
+                return;
+              }
+              try {
+                await appState.updateUserName(name);
+                if (!context.mounted) return;
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('닉네임이 수정되었습니다')),
+                );
+              } catch (_) {
+                if (!context.mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('닉네임 수정 중 오류가 발생했습니다')),
+                );
+              }
+            },
             child: const Text('저장'),
           ),
         ],
+      ),
+    );
+  }
+
+  void _showChangePasswordDialog() {
+    final currentPwController = TextEditingController();
+    final newPwController = TextEditingController();
+    final confirmPwController = TextEditingController();
+    bool obscureCurrent = true;
+    bool obscureNew = true;
+    bool obscureConfirm = true;
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('비밀번호 변경'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: currentPwController,
+                obscureText: obscureCurrent,
+                decoration: InputDecoration(
+                  labelText: '현재 비밀번호',
+                  border: const OutlineInputBorder(),
+                  suffixIcon: IconButton(
+                    icon: Icon(obscureCurrent ? Icons.visibility_off : Icons.visibility),
+                    onPressed: () => setDialogState(() => obscureCurrent = !obscureCurrent),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: newPwController,
+                obscureText: obscureNew,
+                decoration: InputDecoration(
+                  labelText: '새 비밀번호',
+                  border: const OutlineInputBorder(),
+                  suffixIcon: IconButton(
+                    icon: Icon(obscureNew ? Icons.visibility_off : Icons.visibility),
+                    onPressed: () => setDialogState(() => obscureNew = !obscureNew),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: confirmPwController,
+                obscureText: obscureConfirm,
+                decoration: InputDecoration(
+                  labelText: '새 비밀번호 확인',
+                  border: const OutlineInputBorder(),
+                  suffixIcon: IconButton(
+                    icon: Icon(obscureConfirm ? Icons.visibility_off : Icons.visibility),
+                    onPressed: () => setDialogState(() => obscureConfirm = !obscureConfirm),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('취소'),
+            ),
+            TextButton(
+              onPressed: () async {
+                final current = currentPwController.text.trim();
+                final newPw = newPwController.text.trim();
+                final confirm = confirmPwController.text.trim();
+
+                if (current.isEmpty || newPw.isEmpty || confirm.isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('모든 항목을 입력해주세요')),
+                  );
+                  return;
+                }
+                if (newPw != confirm) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('새 비밀번호가 일치하지 않습니다')),
+                  );
+                  return;
+                }
+                if (newPw.length < 6) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('비밀번호는 6자 이상이어야 합니다')),
+                  );
+                  return;
+                }
+
+                // TODO: 백엔드 연동 후 아래 주석 해제
+                // try {
+                //   await AuthApiService.changePassword(
+                //     currentPassword: current,
+                //     newPassword: newPw,
+                //   );
+                // } catch (e) {
+                //   if (!context.mounted) return;
+                //   ScaffoldMessenger.of(context).showSnackBar(
+                //     SnackBar(content: Text('오류: ${e.toString()}')),
+                //   );
+                //   return;
+                // }
+                if (!context.mounted) return;
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('비밀번호가 변경되었습니다')),
+                );
+              },
+              child: const Text('변경'),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -270,6 +378,15 @@ onPressed: () async {
                   subtitle: Text(appState.userName, style: const TextStyle(fontSize: 13)),
                   trailing: const Icon(Icons.chevron_right),
                   onTap: _showEditNicknameDialog,
+                ),
+                const Divider(height: 1),
+                // 비밀번호 변경 버튼
+                ListTile(
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                  leading: const Icon(Icons.lock_outline, size: 26),
+                  title: const Text('비밀번호 변경', style: TextStyle(fontSize: 17)),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: _showChangePasswordDialog,
                 ),
                 const Divider(height: 1),
                 ListTile(
