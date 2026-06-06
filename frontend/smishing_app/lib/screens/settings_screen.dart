@@ -3,7 +3,6 @@ import '../app_state.dart';
 import '../widgets/setting_header.dart';
 import 'login_screen.dart';
 import 'profile_screen.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart'; // 추가 
 
 class SettingsScreen extends StatefulWidget {
   final VoidCallback? onBackHome;
@@ -17,16 +16,10 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen> {
   VoidCallback? _listener;
 
-  final _storage = const FlutterSecureStorage(); //20~23 추가
-  String _userName = '사용자'; 
-  String _userEmail = '이메일 정보 없음';
-  String _loginPlatform = '연동 중';
-  
   @override
   void initState() {
     super.initState();
-    _loadUserData();//추가
-    
+
     _listener = () {
       if (mounted) setState(() {});
     };
@@ -34,27 +27,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     appState.addListener(_listener!);
   }
 
-  Future<void> _loadUserData() async { //추가 로그인된 데이터를 읽어오는 함수
-    String? savedName = await _storage.read(key: 'user_name');
-    String? savedEmail = await _storage.read(key: 'user_email');
-    String? platform = await _storage.read(key: 'login_platform');
-
-    if (mounted) {
-      setState(() {
-        if (savedName != null) _userName = savedName;
-        if (savedEmail != null) _userEmail = savedEmail;
-        if (platform != null) {
-          // 플랫폼 코드를 사용자가 알아보기 쉬운 한글 문구로 치환합니다.
-          if (platform == 'kakao') _loginPlatform = '카카오 로그인 연동됨';
-          else if (platform == 'naver') _loginPlatform = '네이버 로그인 연동됨';
-          else if (platform == 'google') _loginPlatform = '구글 로그인 연동됨';
-          else _loginPlatform = '일반 로그인 연동됨';
-        }
-      });
-    }
-  }
-
-  
   @override
   void dispose() {
     if (_listener != null) {
@@ -345,103 +317,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
       body: ListView(
         padding: const EdgeInsets.symmetric(vertical: 8),
         children: [
-
-          if (appState.isLoggedIn)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
-              child: GestureDetector(
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const ProfileScreen(),
-                    ),
-                  );
-                },
-                child: Container(
-                  padding: const EdgeInsets.all(18),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(18),
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFF1976D2), Color(0xFF42A5F5)],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.blue.withOpacity(0.25),
-                        blurRadius: 12,
-                        offset: const Offset(0, 6),
-                      ),
-                    ],
-                  ),
-                  child: Row(
-                    children: [
-                      Container(
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: Border.all(color: Colors.white, width: 2),
-                        ),
-                        child: const CircleAvatar(
-                          radius: 30,
-                          backgroundColor: Colors.white,
-                          child: Icon(
-                            Icons.person,
-                            size: 34,
-                            color: Color(0xFF1976D2),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 14),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              _userName, //수정
-                              style: const TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              _userEmail,
-                              style: const TextStyle(
-                                fontSize: 14,
-                                color: Colors.white70,
-                              ),
-                            ),
-                            const SizedBox(height: 6),
-                            const Row(
-                              children: [
-                                Icon(Icons.verified, size: 14, color: Colors.white),
-                                SizedBox(width: 4),
-                                Text(
-                                  _loginPlatform,
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                      const Icon(Icons.chevron_right, color: Colors.white),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-
           appState.isLoggedIn
               ? _buildProfileBanner(context)
               : _buildGuestBanner(context),
-
           const SettingHeader(title: '화면'),
           Card(
             margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -588,12 +466,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     '로그아웃',
                     style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
                   ),
-
-                  onPressed: () async{ // 그인 토큰과 유저 정보를 완전히 삭제하고 로그인 화면으로 이동하는 로직
-                    await _storage.deleteAll();
-                    appState.logout();
-
-                    if (context.mounted) { 
                   onPressed: () async {
                     await appState.logout();
 
@@ -603,9 +475,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       context,
                       MaterialPageRoute(
                         builder: (context) => const LoginScreen(),
-                     ),
+                      ),
                     );
-                   }
                   },
                 ),
               ),
