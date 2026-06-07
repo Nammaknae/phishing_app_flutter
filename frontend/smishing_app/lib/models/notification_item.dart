@@ -1,3 +1,5 @@
+import 'alert_scan_result.dart';
+
 class NotificationItem {
   final String packageName;
   final String title;
@@ -95,6 +97,48 @@ class NotificationItem {
       kcelectraIntent: _toStringOrNull(kcelectraMap?['intent']),
       kcelectraVerdict: _toStringOrNull(kcelectraMap?['verdict']),
       analyzedAt: _toStringOrNull(response['analyzed_at']),
+      errorMessage: null,
+    );
+  }
+
+  /// 알림 스캔 응답(SAFE | CAUTION | WARNING)을 UI 목록 항목으로 변환합니다.
+  factory NotificationItem.fromAlertScanResult({
+    required String packageName,
+    required String title,
+    required String text,
+    required List<String> urls,
+    required AlertScanResult result,
+  }) {
+    final level = result.riskLevel.toUpperCase();
+    final String displayGrade;
+    switch (level) {
+      case 'WARNING':
+        displayGrade = 'DANGER';
+        break;
+      case 'CAUTION':
+        displayGrade = 'SUSPICIOUS';
+        break;
+      default:
+        displayGrade = 'SAFE';
+    }
+
+    return NotificationItem(
+      packageName: packageName,
+      title: title,
+      text: text,
+      urls: urls,
+      resultId: result.id,
+      finalRiskGrade: displayGrade,
+      finalRiskScore: null,
+      safeBrowsing: const <Map<String, dynamic>>[],
+      xgboostUsed: null,
+      xgboostScore: null,
+      xgboostVerdict: null,
+      kcelectraUsed: null,
+      kcelectraScore: null,
+      kcelectraIntent: null,
+      kcelectraVerdict: null,
+      analyzedAt: result.createdAt?.toIso8601String(),
       errorMessage: null,
     );
   }

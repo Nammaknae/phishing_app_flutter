@@ -20,6 +20,21 @@ type ScanUrlInput = {
   sender?: string;
 };
 
+export type NotificationScanInput = {
+  appName: string;
+  sender: string;
+  message: string;
+  device_id: string;
+};
+
+export type NotificationRiskLevel = "SAFE" | "CAUTION" | "WARNING";
+
+export type NotificationScanResponse = {
+  id: string;
+  riskLevel: NotificationRiskLevel;
+  createdAt: string;
+};
+
 function extractUrls(text: string): string[] {
   const regex = /\bhttps?:\/\/[^\s<>"']+/gi;
   return Array.from(text.match(regex) ?? []);
@@ -50,6 +65,20 @@ function decideFinalGrade(params: {
   return "SAFE";
 }
 
+/** Prisma RiskGrade → 프론트엔드 약속 riskLevel */
+function toApiRiskLevel(
+  grade: "SAFE" | "SUSPICIOUS" | "DANGER",
+): NotificationRiskLevel {
+  switch (grade) {
+    case "DANGER":
+      return "WARNING";
+    case "SUSPICIOUS":
+      return "CAUTION";
+    default:
+      return "SAFE";
+  }
+}
+
 export class ScansService {
   async scanText(params: {
     input: ScanTextInput;
@@ -65,6 +94,51 @@ export class ScansService {
       sender: input.sender ?? null,
       extractedUrls: urls,
     });
+  }
+
+  /**
+   * 알림 수집 파이프라인 (POST /api/scans)
+   * - 로그인 유저 전용 (userId 필수)
+   * - 기존 scanText → runPipeline 재사용
+   */
+  async scanFromNotification(params: {
+    input: NotificationScanInput;
+    userId: string;
+  }): Promise<NotificationScanResponse> {
+    const { input, userId } = params;
+
+    const pipelineResult = await this.scanText({
+      input: {
+        device_id: input.device_id,
+        content: input.message,
+        source_app: input.appName,
+        sender: input.sender,
+      },
+      userId,
+    });
+
+    const riskLevel = toApiRiskLevel(pipelineResult.final_risk_grade);
+
+    if (riskLevel === "WARNING" || riskLevel === "CAUTION") {
+      await prisma.alert.create({
+        data: {
+          userId: BigInt(userId),
+          resultId: BigInt(pipelineResult.result_id),
+        },
+      });
+    }
+
+    const analyzedAt = pipelineResult.analyzed_at;
+    const createdAt =
+      analyzedAt instanceof Date
+        ? analyzedAt.toISOString()
+        : new Date(analyzedAt).toISOString();
+
+    return {
+      id: pipelineResult.result_id,
+      riskLevel,
+      createdAt,
+    };
   }
 
   async scanUrl(params: { input: ScanUrlInput; userId?: string | null }) {

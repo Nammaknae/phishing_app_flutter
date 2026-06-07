@@ -6,9 +6,14 @@ import 'package:flutter/services.dart';
 import 'app_state.dart';
 import 'models/notification_item.dart';
 import 'screens/access_screen.dart';
-import 'services/api_service.dart';
+import 'services/app_permission_service.dart';
+import 'services/local_notification_service.dart';
+import 'services/notification_pipeline_service.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await AppPermissionService.requestPostNotificationsOnStartup();
+  await LocalNotificationService.initialize();
   runApp(const MyApp());
 }
 
@@ -92,8 +97,6 @@ class NotificationBridge extends StatefulWidget {
 }
 
 class _NotificationBridgeState extends State<NotificationBridge> {
-  static const String _deviceId = 'android-test-device';
-
   static const List<String> _channelCandidates = <String>[
     'smishing/notifications',
     'notification_listener/events',
@@ -102,13 +105,10 @@ class _NotificationBridgeState extends State<NotificationBridge> {
   ];
 
   final List<NotificationItem> _items = <NotificationItem>[];
-  final Set<String> _alertedResultIds = <String>{};
-  final Set<String> _alertedFallbackKeys = <String>{};
 
   StreamSubscription<dynamic>? _streamSub;
   String? _boundChannel;
   String? _streamError;
-  bool _isAlertOpen = false;
 
   @override
   void initState() {
@@ -168,6 +168,16 @@ class _NotificationBridgeState extends State<NotificationBridge> {
   }
 
   Future<void> _handleIncomingNotification(dynamic payload) async {
+    // 로그인 상태가 아니면 알림 수집·분석을 수행하지 않습니다.
+    if (!appState.isLoggedIn) {
+      return;
+    }
+
+    // 알림 접근 권한이 없으면 수집 파이프라인을 실행하지 않습니다.
+    if (!await AppPermissionService.isNotificationListenerEnabled()) {
+      return;
+    }
+
     Map<String, dynamic>? map;
 
     if (payload is Map) {
@@ -190,7 +200,7 @@ class _NotificationBridgeState extends State<NotificationBridge> {
 
     final String title = _pickString(
       map,
-      <String>['title', 'notificationTitle', 'appName'],
+      <String>['title', 'notificationTitle', 'appName', 'sender'],
       fallback: '알림',
     );
 
@@ -200,32 +210,35 @@ class _NotificationBridgeState extends State<NotificationBridge> {
       fallback: '',
     );
 
-    final List<String> urlsFromPayload = _toStringList(map['urls']);
-    final List<String> urls = urlsFromPayload.isNotEmpty ? urlsFromPayload : _extractUrls(text);
-
-    if (urls.isEmpty) {
+    if (text.trim().isEmpty) {
       return;
     }
 
-    final String firstUrl = urls.first;
+    final String appName = _resolveAppName(packageName);
+    final List<String> urlsFromPayload = _toStringList(map['urls']);
+    final List<String> urls =
+        urlsFromPayload.isNotEmpty ? urlsFromPayload : _extractUrls(text);
 
     try {
-      final Map<String, dynamic> response = await ApiService.scanUrl(
-        deviceId: _deviceId,
-        url: firstUrl,
-        sourceApp: packageName,
+      final scanResult = await NotificationPipelineService.processNotification(
+        appName: appName,
+        sender: title,
+        message: text,
       );
 
-      final NotificationItem item = NotificationItem.fromScanResponse(
+      if (scanResult == null) {
+        return;
+      }
+
+      final NotificationItem item = NotificationItem.fromAlertScanResult(
         packageName: packageName,
         title: title,
         text: text,
         urls: urls,
-        response: response,
+        result: scanResult,
       );
 
       _appendItem(item);
-      await _showRiskAlertIfNeeded(item);
     } catch (e) {
       final NotificationItem errorItem = NotificationItem.withError(
         packageName: packageName,
@@ -238,6 +251,21 @@ class _NotificationBridgeState extends State<NotificationBridge> {
     }
   }
 
+  String _resolveAppName(String packageName) {
+    switch (packageName) {
+      case 'com.kakao.talk':
+        return '카카오톡';
+      case 'com.samsung.android.messaging':
+        return '삼성 메시지';
+      case 'com.google.android.apps.messaging':
+        return 'Google 메시지';
+      case 'com.android.mms':
+        return '문자';
+      default:
+        return packageName;
+    }
+  }
+
   void _appendItem(NotificationItem item) {
     if (!mounted) return;
 
@@ -247,55 +275,6 @@ class _NotificationBridgeState extends State<NotificationBridge> {
         _items.removeRange(100, _items.length);
       }
     });
-  }
-
-  Future<void> _showRiskAlertIfNeeded(NotificationItem item) async {
-    final String grade = (item.finalRiskGrade ?? '').toUpperCase();
-    if (grade != 'DANGER' && grade != 'SUSPICIOUS') {
-      return;
-    }
-
-    if (item.resultId != null && item.resultId!.isNotEmpty) {
-      if (_alertedResultIds.contains(item.resultId)) {
-        return;
-      }
-      _alertedResultIds.add(item.resultId!);
-    } else {
-      final String fallbackKey = _fallbackAlertKey(item);
-      if (_alertedFallbackKeys.contains(fallbackKey)) {
-        return;
-      }
-      _alertedFallbackKeys.add(fallbackKey);
-    }
-
-    if (_isAlertOpen) {
-      return;
-    }
-
-    final BuildContext? context = widget.navigatorKey.currentContext;
-    if (context == null) return;
-
-    _isAlertOpen = true;
-
-    await showDialog<void>(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => _RiskAlertDialog(
-        item: item,
-        levelColor: _gradeColor(grade),
-        onViewDetail: () {
-          Navigator.of(context).pop();
-          _openDetailSheet(context, item);
-        },
-      ),
-    );
-
-    _isAlertOpen = false;
-  }
-
-  String _fallbackAlertKey(NotificationItem item) {
-    final String firstUrl = item.urls.isNotEmpty ? item.urls.first : '-';
-    return '${item.packageName}|${item.title}|$firstUrl|${item.finalRiskGrade ?? 'UNKNOWN'}';
   }
 
   void _openDetailSheet(BuildContext context, NotificationItem selected) {
@@ -366,19 +345,6 @@ class _NotificationBridgeState extends State<NotificationBridge> {
         .toList();
   }
 
-  Color _gradeColor(String grade) {
-    switch (grade.toUpperCase()) {
-      case 'DANGER':
-        return Colors.red;
-      case 'SUSPICIOUS':
-        return Colors.orange;
-      case 'SAFE':
-        return Colors.green;
-      default:
-        return Colors.grey;
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Stack(
@@ -414,76 +380,6 @@ class _NotificationBridgeState extends State<NotificationBridge> {
             ),
           ),
       ],
-    );
-  }
-}
-
-class _RiskAlertDialog extends StatelessWidget {
-  final NotificationItem item;
-  final Color levelColor;
-  final VoidCallback onViewDetail;
-
-  const _RiskAlertDialog({
-    required this.item,
-    required this.levelColor,
-    required this.onViewDetail,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final String grade = (item.finalRiskGrade ?? 'UNKNOWN').toUpperCase();
-    final String firstUrl = item.urls.isNotEmpty ? item.urls.first : '-';
-
-    return AlertDialog(
-      title: Row(
-        children: <Widget>[
-          Icon(Icons.warning_amber_rounded, color: levelColor),
-          const SizedBox(width: 8),
-          Text('위험 경고: $grade'),
-        ],
-      ),
-      content: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: <Widget>[
-            _kv('앱명', item.packageName),
-            _kv('제목', item.title.isEmpty ? '-' : item.title),
-            _kv('본문', item.text.isEmpty ? '-' : item.text),
-            _kv('URL', firstUrl),
-            _kv('최종 등급', grade),
-            _kv('위험 점수', item.finalRiskScore?.toString() ?? '-'),
-          ],
-        ),
-      ),
-      actions: <Widget>[
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Text('닫기'),
-        ),
-        FilledButton(
-          onPressed: onViewDetail,
-          child: const Text('상세 보기'),
-        ),
-      ],
-    );
-  }
-
-  Widget _kv(String key, String value) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 6),
-      child: RichText(
-        text: TextSpan(
-          style: const TextStyle(color: Colors.black87, height: 1.35),
-          children: <InlineSpan>[
-            TextSpan(
-              text: '$key: ',
-              style: const TextStyle(fontWeight: FontWeight.w700),
-            ),
-            TextSpan(text: value),
-          ],
-        ),
-      ),
     );
   }
 }
