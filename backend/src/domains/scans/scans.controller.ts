@@ -7,6 +7,9 @@ import { ScansService } from "./scans.service";
 type HttpError = Error & { statusCode?: number };
 
 function getStatusCode(err: unknown, fallback = 500) {
+  if (err instanceof z.ZodError) {
+    return 400;
+  }
   if (err && typeof err === "object" && "statusCode" in err) {
     const code = (err as HttpError).statusCode;
     if (typeof code === "number") return code;
@@ -37,6 +40,13 @@ const scanUrlSchema = z.object({
   url: z.string().url(),
   source_app: z.string().min(1).optional(),
   sender: z.string().min(1).optional(),
+});
+
+const notificationScanSchema = z.object({
+  appName: z.string().min(1),
+  sender: z.string().min(1),
+  message: z.string().min(1),
+  device_id: z.string().min(1),
 });
 
 export class ScansController {
@@ -90,6 +100,32 @@ export class ScansController {
       });
       return res.status(200).json(result);
     } catch (err) {
+      return res.status(getStatusCode(err)).json(toErrorResponse(err));
+    }
+  };
+
+  /** POST /api/scans — 알림 수집 스캔 (requireAuth → req.user.userId) */
+  postNotificationScan = async (req: Request, res: Response) => {
+    try {
+      const userId = req.user?.userId;
+      if (!userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      const input = notificationScanSchema.parse(req.body);
+      const result = await this.scansService.scanFromNotification({
+        input,
+        userId,
+      });
+
+      return res.status(201).json(result);
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        return res.status(400).json({
+          message: "Invalid request body",
+          issues: err.issues,
+        });
+      }
       return res.status(getStatusCode(err)).json(toErrorResponse(err));
     }
   };

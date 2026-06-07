@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'models/user_profile.dart';
 import 'services/auth_api_service.dart';
+import 'services/native_auth_bridge.dart';
 import 'services/token_storage.dart';
 
 final appState = AppState();
@@ -98,6 +99,7 @@ void _applyUserProfile(UserProfile profile, {String? displayName}) {
 
       final profile = await AuthApiService.getMe();
       _applyUserProfile(profile);
+      await NativeAuthBridge.syncSession();
       return true;
     } catch (_) {
       await AuthApiService.clearSession();
@@ -110,13 +112,18 @@ void _applyUserProfile(UserProfile profile, {String? displayName}) {
   }
 
   /// 로그인/회원가입 API 성공 후 세션 반영.
-  void setAuthenticatedSession(UserProfile profile, {String? displayName}) {
+  Future<void> setAuthenticatedSession(
+    UserProfile profile, {
+    String? displayName,
+  }) async {
     _applyUserProfile(profile, displayName: displayName);
+    await NativeAuthBridge.syncSession();
     notifyListeners();
   }
 
   Future<void> logout() async {
     await AuthApiService.clearSession();
+    await NativeAuthBridge.clearSession();
     _clearUserSession();
     notifyListeners();
   }
@@ -127,6 +134,7 @@ void _applyUserProfile(UserProfile profile, {String? displayName}) {
     } else {
       await AuthApiService.clearSession();
     }
+    await NativeAuthBridge.clearSession();
     _clearUserSession();
     notifyListeners();
   }

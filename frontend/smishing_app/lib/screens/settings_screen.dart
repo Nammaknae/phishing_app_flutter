@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+
 import '../app_state.dart';
+import '../services/app_permission_service.dart';
 import '../widgets/setting_header.dart';
 import 'login_screen.dart';
 import 'profile_screen.dart';
@@ -13,26 +15,48 @@ class SettingsScreen extends StatefulWidget {
   State<SettingsScreen> createState() => _SettingsScreenState();
 }
 
-class _SettingsScreenState extends State<SettingsScreen> {
+class _SettingsScreenState extends State<SettingsScreen>
+    with WidgetsBindingObserver {
   VoidCallback? _listener;
+  bool _listenerEnabled = false;
+  bool _postNotificationGranted = false;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
 
     _listener = () {
       if (mounted) setState(() {});
     };
 
     appState.addListener(_listener!);
+    _refreshPermissionStatus();
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     if (_listener != null) {
       appState.removeListener(_listener!);
     }
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _refreshPermissionStatus();
+    }
+  }
+
+  Future<void> _refreshPermissionStatus() async {
+    final result = await AppPermissionService.checkScanPermissions();
+    if (!mounted) return;
+    setState(() {
+      _listenerEnabled = result.notificationListenerEnabled;
+      _postNotificationGranted = result.postNotificationGranted;
+    });
   }
 
   String _getFontSizeLabel(double size) {
@@ -381,6 +405,65 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
             child: Column(
               children: [
+                ListTile(
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 4,
+                  ),
+                  leading: Icon(
+                    _listenerEnabled
+                        ? Icons.notifications_active
+                        : Icons.notifications_off_outlined,
+                    size: 28,
+                    color: _listenerEnabled ? Colors.green : Colors.orange,
+                  ),
+                  title: const Text(
+                    '알림 접근 허용',
+                    style: TextStyle(fontSize: 18),
+                  ),
+                  subtitle: Text(
+                    _listenerEnabled
+                        ? '카카오톡·문자 알림 읽기 허용됨'
+                        : '미허용 — 스미싱 자동 탐지 불가',
+                  ),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () async {
+                    await AppPermissionService.promptNotificationListenerIfNeeded(
+                      context,
+                      force: true,
+                    );
+                    await _refreshPermissionStatus();
+                  },
+                ),
+                const Divider(height: 1),
+                ListTile(
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 4,
+                  ),
+                  leading: Icon(
+                    _postNotificationGranted
+                        ? Icons.campaign_outlined
+                        : Icons.campaign,
+                    size: 28,
+                    color:
+                        _postNotificationGranted ? Colors.green : Colors.orange,
+                  ),
+                  title: const Text(
+                    '알림 발송 허용',
+                    style: TextStyle(fontSize: 18),
+                  ),
+                  subtitle: Text(
+                    _postNotificationGranted
+                        ? '위험·주의 푸시 알림 발송 가능'
+                        : '미허용 — 탐지 알림을 받을 수 없음',
+                  ),
+                  onTap: () async {
+                    await AppPermissionService.requestPostNotificationPermission();
+                    await _refreshPermissionStatus();
+                  },
+                ),
+                const Divider(height: 1),
                 SwitchListTile(
                   contentPadding: const EdgeInsets.symmetric(
                     horizontal: 16,

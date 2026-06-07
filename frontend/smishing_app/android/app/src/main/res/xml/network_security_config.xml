@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  NAS(HTTPS)는 기본 TLS로 통신합니다.
+  cleartext 허용은 로컬 개발(http:// 사설 IP) 테스트용이며,
+  AndroidManifest의 usesCleartextTraffic="true" 와 함께 동작합니다.
+-->
+<network-security-config>
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="true">localhost</domain>
+        <domain includeSubdomains="true">10.0.2.2</domain>
+        <domain includeSubdomains="true">127.0.0.1</domain>
+    </domain-config>
+    <!-- 192.168.0.0/16 사설망 — PC 로컬 IP 테스트용 -->
+    <base-config cleartextTrafficPermitted="true" />
+</network-security-config>
