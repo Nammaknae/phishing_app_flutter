@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../app_state.dart';
 import '../services/app_permission_service.dart';
@@ -21,7 +21,7 @@ class _PermissionScreenState extends State<PermissionScreen>
 
   bool get _canProceed => _agreedPrivacy;
 //임시로 바꿔둔 코드 알림 설정 바뀌면 위 코드 교체 필요
-//bool get _canProceed => _agreedPrivacy && _agreedNotification;
+//bool get _canProceed => _agreedPrivacy;
   @override
   void initState() {
     super.initState();
@@ -415,3 +415,4 @@ class _PermissionScreenState extends State<PermissionScreen>
     );
   }
 }
+
