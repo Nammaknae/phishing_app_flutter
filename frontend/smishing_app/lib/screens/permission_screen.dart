@@ -15,7 +15,7 @@ class _PermissionScreenState extends State<PermissionScreen> with WidgetsBinding
   bool _agreedPrivacy = false;
   bool _agreedNotification = false;
 
-  bool get _canProceed => _agreedPrivacy && _agreedNotification;
+  bool get _canProceed => _agreedPrivacy;
 
   @override
   void initState() {
