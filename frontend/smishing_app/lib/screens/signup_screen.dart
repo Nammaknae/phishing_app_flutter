@@ -369,11 +369,11 @@ class _SignupScreenState extends State<SignupScreen> {
                     },
                     activeColor: const Color(0xFF1976D2),
                   ),
-                  Flexible(
-                    child: Text(
-                      '이용약관 및 개인정보 처리방침에 동의합니다',
-                      style: TextStyle(fontSize: 15),
-                    ),
+	                  const Flexible(
+	                    child: Text(
+	                      '이용약관 및 개인정보 처리방침에 동의합니다',
+	                      style: TextStyle(fontSize: 15),
+	                    ),
                   ),
                 ],
               ),

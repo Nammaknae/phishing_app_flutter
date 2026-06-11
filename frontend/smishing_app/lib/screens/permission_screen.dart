@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:permission_handler/permission_handler.dart';
 import '../app_state.dart';
+import '../services/notification_access_service.dart';
 import 'home_screen.dart';
 
 class PermissionScreen extends StatefulWidget {
@@ -15,12 +16,15 @@ class _PermissionScreenState extends State<PermissionScreen> with WidgetsBinding
   bool _agreedPrivacy = false;
   bool _agreedNotification = false;
 
-  bool get _canProceed => _agreedPrivacy;
+  bool get _canProceed => _agreedPrivacy && _agreedNotification;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _recheckNotificationPermission();
+    });
   }
 
   @override
@@ -38,10 +42,13 @@ class _PermissionScreenState extends State<PermissionScreen> with WidgetsBinding
   }
 
   Future<void> _recheckNotificationPermission() async {
-    final status = await Permission.notification.status;
-    if (status.isGranted) {
-      setState(() => _agreedNotification = true);
-    }
+    final listenerEnabled =
+        await NotificationAccessService.isNotificationListenerEnabled();
+
+    if (!mounted) return;
+    setState(() {
+      _agreedNotification = listenerEnabled;
+    });
   }
 
   void _showPrivacyDialog() {
@@ -81,45 +88,21 @@ class _PermissionScreenState extends State<PermissionScreen> with WidgetsBinding
   }
 
   Future<void> _handleNotificationPermission() async {
-    final status = await Permission.notification.status;
+    final notificationStatus = await Permission.notification.status;
+    if (!notificationStatus.isGranted) {
+      await Permission.notification.request();
+    }
 
-    if (status.isGranted) {
-      setState(() => _agreedNotification = true);
+    final listenerEnabled =
+        await NotificationAccessService.isNotificationListenerEnabled();
+
+    if (!mounted) return;
+    if (listenerEnabled) {
+      await _recheckNotificationPermission();
       return;
     }
 
-    if (status.isDenied) {
-      final result = await Permission.notification.request();
-      if (result.isGranted) {
-        setState(() => _agreedNotification = true);
-        return;
-      }
-    }
-
-    // 영구 거부이거나 요청 후에도 거부된 경우 → 안내 다이얼로그
-    if (!mounted) return;
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('알림 권한 필요'),
-        content: const Text(
-          '알림이 차단되어 있습니다.\n설정에서 알림을 허용한 후\n다시 시도해주세요.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('취소'),
-          ),
-          TextButton(
-            onPressed: () async {
-              Navigator.pop(context);
-              await openAppSettings();
-            },
-            child: const Text('설정으로 이동'),
-          ),
-        ],
-      ),
-    );
+    await NotificationAccessService.openNotificationListenerSettings();
   }
 
   void _proceed() {
