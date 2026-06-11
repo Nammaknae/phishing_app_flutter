@@ -171,7 +171,7 @@ class _MainScreenState extends State<MainScreen> {
                   border: Border.all(color: const Color(0xFFD6E9FF)),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.10),
+	                      color: Colors.black.withValues(alpha: 0.10),
                       blurRadius: 16,
                       offset: const Offset(0, 6),
                     ),
@@ -822,7 +822,7 @@ class _MainScreenState extends State<MainScreen> {
             ),
             if (_isLoading)
               Container(
-                color: Colors.black.withOpacity(0.5),
+	                color: Colors.black.withValues(alpha: 0.5),
                 child: const Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,

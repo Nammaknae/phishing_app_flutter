@@ -68,7 +68,7 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _continueAsGuest() async {
     await appState.logout();
 
-    if (!context.mounted) return;
+	    if (!mounted) return;
 
     Navigator.pushReplacement(
       context,

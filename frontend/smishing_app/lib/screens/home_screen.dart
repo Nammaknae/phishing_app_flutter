@@ -44,21 +44,20 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
-  Future<bool> _onWillPop() async {
-    if (_currentIndex != 1) {
-      setState(() {
-        _currentIndex = 1;
-      });
-      return false;
-    }
-    return true;
-  }
+	  void _handlePopInvoked(bool didPop) {
+	    if (didPop || _currentIndex == 1) return;
+
+	    setState(() {
+	      _currentIndex = 1;
+	    });
+	  }
 
   @override
   Widget build(BuildContext context) {
-    return WillPopScope(
-      onWillPop: _onWillPop,
-      child: Scaffold(
+	    return PopScope(
+	      canPop: _currentIndex == 1,
+	      onPopInvokedWithResult: (didPop, _) => _handlePopInvoked(didPop),
+	      child: Scaffold(
         body: IndexedStack(
           index: _currentIndex,
           children: _screens,

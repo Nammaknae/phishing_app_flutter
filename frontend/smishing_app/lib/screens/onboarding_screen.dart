@@ -15,19 +15,19 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   final List<Map<String, dynamic>> _pages = [
     {
       'icon': Icons.security,
-      'color': Color(0xFF1976D2),
+	      'color': const Color(0xFF1976D2),
       'title': '스미싱 탐지기에\n오신걸 환영합니다',
       'desc': '의심스러운 문자와 URL을\n안전하게 확인할 수 있어요',
     },
     {
       'icon': Icons.search,
-      'color': Color(0xFF4CAF50),
+	      'color': const Color(0xFF4CAF50),
       'title': '문자나 주소를\n붙여넣고 검사하세요',
       'desc': '카카오톡, 문자메시지에서\n의심스러운 내용을 복사해서\n바로 검사할 수 있어요',
     },
     {
       'icon': Icons.chat_bubble,
-      'color': Color(0xFFFFC107),
+	      'color': const Color(0xFFFFC107),
       'title': 'AI가 위험 여부를\n알려드려요',
       'desc': '검사 결과를 쉽게 확인하고\nAI 상담사에게 도움을\n받을 수 있어요',
     },
@@ -87,7 +87,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                             width: 140,
                             height: 140,
                             decoration: BoxDecoration(
-                              color: (page['color'] as Color).withOpacity(0.15),
+	                              color: (page['color'] as Color)
+	                                  .withValues(alpha: 0.15),
                               borderRadius: BorderRadius.circular(40),
                             ),
                             child: Icon(

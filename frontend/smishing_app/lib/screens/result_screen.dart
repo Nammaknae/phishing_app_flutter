@@ -466,7 +466,7 @@ class _SimpleCard extends StatelessWidget {
         border: Border.all(color: const Color(0xFFE8EEF5)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.055),
+	            color: Colors.black.withValues(alpha: 0.055),
             blurRadius: 12,
             offset: const Offset(0, 4),
           ),

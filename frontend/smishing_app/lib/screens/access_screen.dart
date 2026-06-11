@@ -75,7 +75,7 @@ class _AccessScreenState extends State<AccessScreen> {
                   width: 180,
                   height: 180,
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.08),
+	                    color: Colors.white.withValues(alpha: 0.08),
                     shape: BoxShape.circle,
                   ),
                 ),
@@ -87,7 +87,7 @@ class _AccessScreenState extends State<AccessScreen> {
                   width: 220,
                   height: 220,
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.06),
+	                    color: Colors.white.withValues(alpha: 0.06),
                     shape: BoxShape.circle,
                   ),
                 ),
@@ -102,15 +102,15 @@ class _AccessScreenState extends State<AccessScreen> {
                         width: 120,
                         height: 120,
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.15),
+	                          color: Colors.white.withValues(alpha: 0.15),
                           borderRadius: BorderRadius.circular(30),
                           border: Border.all(
-                            color: Colors.white.withOpacity(0.25),
+	                            color: Colors.white.withValues(alpha: 0.25),
                             width: 1.5,
                           ),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withOpacity(0.15),
+	                              color: Colors.black.withValues(alpha: 0.15),
                               blurRadius: 20,
                               offset: const Offset(0, 10),
                             ),
