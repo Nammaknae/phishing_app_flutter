@@ -34,6 +34,12 @@
             android:name="flutterEmbedding"
             android:value="2" />
 
+        <activity
+            android:name=".RiskWarningActivity"
+            android:excludeFromRecents="true"
+            android:exported="false"
+            android:theme="@style/RiskWarningDialogTheme" />
+
         <service
             android:name=".NotificationReaderService"
             android:enabled="true"

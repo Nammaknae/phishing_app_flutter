@@ -1,10 +1,6 @@
 package com.example.smishing_app
 
 import android.app.Notification
-import android.app.NotificationChannel
-import android.app.NotificationManager
-import android.app.PendingIntent
-import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
@@ -27,7 +23,6 @@ class NotificationReaderService : NotificationListenerService() {
 
     override fun onCreate() {
         super.onCreate()
-        createRiskNotificationChannel()
     }
 
     override fun onListenerConnected() {
@@ -188,7 +183,7 @@ class NotificationReaderService : NotificationListenerService() {
             Log.d(TAG, "scan result grade=$grade score=$score")
 
             if (shouldShowRiskAlert(grade, score)) {
-                showRiskNotification(score)
+                showRiskWarningDialog(grade, score, content)
             }
         } catch (e: Exception) {
             Log.e(TAG, "scan request failed: ${e.message}", e)
@@ -220,71 +215,24 @@ class NotificationReaderService : NotificationListenerService() {
         }
     }
 
-    private fun createRiskNotificationChannel() {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
-
-        val channel = NotificationChannel(
-            RISK_CHANNEL_ID,
-            "스미싱 위험 알림",
-            NotificationManager.IMPORTANCE_HIGH,
-        ).apply {
-            description = "스미싱 위험 알림을 표시합니다."
+    private fun showRiskWarningDialog(grade: String, score: Int, content: String) {
+        val intent = Intent(this, RiskWarningActivity::class.java).apply {
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            putExtra(RiskWarningActivity.EXTRA_GRADE, grade)
+            putExtra(RiskWarningActivity.EXTRA_SCORE, score)
+            putExtra(RiskWarningActivity.EXTRA_CONTENT, content)
         }
-
-        notificationManager.createNotificationChannel(channel)
+        startActivity(intent)
+        Log.d(TAG, "risk warning dialog shown")
     }
-
-    private fun showRiskNotification(score: Int) {
-        createRiskNotificationChannel()
-
-        val launchIntent = packageManager.getLaunchIntentForPackage(packageName)?.apply {
-            addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
-        }
-        val pendingIntent = launchIntent?.let {
-            PendingIntent.getActivity(
-                this,
-                0,
-                it,
-                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
-            )
-        }
-        val message = "위험도 ${score}점: 링크를 열지 마세요."
-
-        val builder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            Notification.Builder(this, RISK_CHANNEL_ID)
-        } else {
-            @Suppress("DEPRECATION")
-            Notification.Builder(this)
-        }
-
-        builder
-            .setSmallIcon(R.mipmap.ic_launcher)
-            .setContentTitle("스미싱 의심 알림")
-            .setContentText(message)
-            .setStyle(Notification.BigTextStyle().bigText(message))
-            .setAutoCancel(true)
-            .setPriority(Notification.PRIORITY_HIGH)
-
-        if (pendingIntent != null) {
-            builder.setContentIntent(pendingIntent)
-        }
-
-        notificationManager.notify(RISK_NOTIFICATION_ID, builder.build())
-        Log.d(TAG, "warning notification shown")
-    }
-
-    private val notificationManager: NotificationManager
-        get() = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
     companion object {
         private const val TAG = "NotificationReader"
         private const val DEVICE_ID = "android-notification-listener"
         private const val SCAN_TEXT_URL = "https://api.maknae.synology.me/api/scans/text"
-        private const val RISK_CHANNEL_ID = "smishing_risk_alerts"
-        private const val RISK_NOTIFICATION_ID = 20260612
         private const val MAX_CONTENT_LENGTH = 4000
         private const val MIN_CONTENT_LENGTH = 8
-        private const val MIN_ALERT_SCORE = 70
+        private const val MIN_ALERT_SCORE = 65
         private const val DUPLICATE_WINDOW_MS = 60_000L
         private const val ADB_TEST_PACKAGE = "com.android.shell"
 
