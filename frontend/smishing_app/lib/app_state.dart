@@ -72,14 +72,24 @@ class AppState extends ChangeNotifier {
 
   void toggleSmishingAlert() async {
     _smishingAlert = !_smishingAlert;
+    if (!_smishingAlert) {
+      _cautionAlert = false;
+    }
+
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_kSmishingAlert, _smishingAlert);
+    await prefs.setBool(_kCautionAlert, _cautionAlert);
     notifyListeners();
   }
 
   void toggleCautionAlert() async {
     _cautionAlert = !_cautionAlert;
+    if (_cautionAlert) {
+      _smishingAlert = true;
+    }
+
     final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_kSmishingAlert, _smishingAlert);
     await prefs.setBool(_kCautionAlert, _cautionAlert);
     notifyListeners();
   }
