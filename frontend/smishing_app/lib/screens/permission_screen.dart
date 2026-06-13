@@ -1,6 +1,8 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:permission_handler/permission_handler.dart';
+
 import '../app_state.dart';
 import '../services/notification_access_service.dart';
 import 'home_screen.dart';
@@ -12,7 +14,8 @@ class PermissionScreen extends StatefulWidget {
   State<PermissionScreen> createState() => _PermissionScreenState();
 }
 
-class _PermissionScreenState extends State<PermissionScreen> with WidgetsBindingObserver {
+class _PermissionScreenState extends State<PermissionScreen>
+    with WidgetsBindingObserver {
   bool _agreedPrivacy = false;
   bool _agreedNotification = false;
 
@@ -22,9 +25,12 @@ class _PermissionScreenState extends State<PermissionScreen> with WidgetsBinding
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _recheckNotificationPermission();
-    });
+
+    if (!kIsWeb) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _recheckNotificationPermission();
+      });
+    }
   }
 
   @override
@@ -33,19 +39,21 @@ class _PermissionScreenState extends State<PermissionScreen> with WidgetsBinding
     super.dispose();
   }
 
-  // 설정창에서 돌아왔을 때 권한 상태 재확인
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) {
+    if (!kIsWeb && state == AppLifecycleState.resumed) {
       _recheckNotificationPermission();
     }
   }
 
   Future<void> _recheckNotificationPermission() async {
+    if (kIsWeb) return;
+
     final listenerEnabled =
         await NotificationAccessService.isNotificationListenerEnabled();
 
     if (!mounted) return;
+
     setState(() {
       _agreedNotification = listenerEnabled;
     });
@@ -88,7 +96,21 @@ class _PermissionScreenState extends State<PermissionScreen> with WidgetsBinding
   }
 
   Future<void> _handleNotificationPermission() async {
+    if (kIsWeb) {
+      setState(() {
+        _agreedNotification = true;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('웹에서는 테스트용으로 알림 접근 허용 처리됩니다.'),
+        ),
+      );
+      return;
+    }
+
     final notificationStatus = await Permission.notification.status;
+
     if (!notificationStatus.isGranted) {
       await Permission.notification.request();
     }
@@ -97,8 +119,11 @@ class _PermissionScreenState extends State<PermissionScreen> with WidgetsBinding
         await NotificationAccessService.isNotificationListenerEnabled();
 
     if (!mounted) return;
+
     if (listenerEnabled) {
-      await _recheckNotificationPermission();
+      setState(() {
+        _agreedNotification = true;
+      });
       return;
     }
 
@@ -107,6 +132,7 @@ class _PermissionScreenState extends State<PermissionScreen> with WidgetsBinding
 
   void _proceed() {
     appState.agreePermission();
+
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(builder: (context) => const HomeScreen()),
@@ -114,6 +140,15 @@ class _PermissionScreenState extends State<PermissionScreen> with WidgetsBinding
   }
 
   void _exitApp() {
+    if (kIsWeb) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('웹에서는 앱 종료가 지원되지 않습니다. 브라우저 탭을 닫아주세요.'),
+        ),
+      );
+      return;
+    }
+
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -138,8 +173,79 @@ class _PermissionScreenState extends State<PermissionScreen> with WidgetsBinding
     );
   }
 
+  Widget _permissionCard({
+    required bool checked,
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+    VoidCallback? onSubtitleTap,
+    bool subtitleBlue = false,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Card(
+        elevation: 0,
+        color: const Color(0xFFF7F7FC),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: BorderSide(
+            color: checked ? const Color(0xFF1976D2) : const Color(0xFFEAEAEA),
+            width: checked ? 2 : 1,
+          ),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 18),
+          child: Row(
+            children: [
+              Checkbox(
+                value: checked,
+                onChanged: (_) => onTap(),
+                activeColor: const Color(0xFF1976D2),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    GestureDetector(
+                      onTap: onSubtitleTap,
+                      child: Text(
+                        subtitle,
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: subtitleBlue
+                              ? const Color(0xFF1976D2)
+                              : Colors.black54,
+                          decoration: subtitleBlue
+                              ? TextDecoration.underline
+                              : TextDecoration.none,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final notificationSubtitle =
+        kIsWeb ? '웹 테스트에서는 클릭 시 허용 처리됩니다.' : '위험 탐지 시 알림을 받기 위해 필요합니다.';
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -149,7 +255,10 @@ class _PermissionScreenState extends State<PermissionScreen> with WidgetsBinding
         elevation: 0,
         title: const Text(
           '권한 설정',
-          style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF212121)),
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: Color(0xFF212121),
+          ),
         ),
       ),
       body: SafeArea(
@@ -167,7 +276,11 @@ class _PermissionScreenState extends State<PermissionScreen> with WidgetsBinding
                 ),
                 child: const Row(
                   children: [
-                    Icon(Icons.info_outline, color: Color(0xFF1976D2), size: 24),
+                    Icon(
+                      Icons.info_outline,
+                      color: Color(0xFF1976D2),
+                      size: 24,
+                    ),
                     SizedBox(width: 12),
                     Expanded(
                       child: Text(
@@ -193,84 +306,32 @@ class _PermissionScreenState extends State<PermissionScreen> with WidgetsBinding
                 ),
               ),
               const SizedBox(height: 12),
-              Card(
-                elevation: 0,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  side: BorderSide(
-                    color: _agreedPrivacy
-                        ? const Color(0xFF1976D2)
-                        : const Color(0xFFEAEAEA),
-                    width: _agreedPrivacy ? 2 : 1,
-                  ),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  child: CheckboxListTile(
-                    value: _agreedPrivacy,
-                    onChanged: (val) =>
-                        setState(() => _agreedPrivacy = val ?? false),
-                    activeColor: const Color(0xFF1976D2),
-                    title: const Text(
-                      '개인정보 수집 및 이용 동의 (필수)',
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                    ),
-                    subtitle: GestureDetector(
-                      onTap: _showPrivacyDialog,
-                      child: const Padding(
-                        padding: EdgeInsets.only(top: 4),
-                        child: Text(
-                          '내용 보기 >',
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: Color(0xFF1976D2),
-                            decoration: TextDecoration.underline,
-                          ),
-                        ),
-                      ),
-                    ),
-                    controlAffinity: ListTileControlAffinity.leading,
-                  ),
-                ),
+              _permissionCard(
+                checked: _agreedPrivacy,
+                title: '개인정보 수집 및 이용 동의 (필수)',
+                subtitle: '내용 보기 >',
+                subtitleBlue: true,
+                onTap: () {
+                  setState(() {
+                    _agreedPrivacy = !_agreedPrivacy;
+                  });
+                },
+                onSubtitleTap: _showPrivacyDialog,
               ),
               const SizedBox(height: 12),
-              Card(
-                elevation: 0,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  side: BorderSide(
-                    color: _agreedNotification
-                        ? const Color(0xFF1976D2)
-                        : const Color(0xFFEAEAEA),
-                    width: _agreedNotification ? 2 : 1,
-                  ),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  child: CheckboxListTile(
-                    value: _agreedNotification,
-                    onChanged: (val) async {
-                      if (val == true) {
-                        await _handleNotificationPermission();
-                      } else {
-                        setState(() => _agreedNotification = false);
-                      }
-                    },
-                    activeColor: const Color(0xFF1976D2),
-                    title: const Text(
-                      '알림 접근 허용 (필수)',
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                    ),
-                    subtitle: const Padding(
-                      padding: EdgeInsets.only(top: 4),
-                      child: Text(
-                        '위험 탐지 시 알림을 받기 위해 필요합니다.',
-                        style: TextStyle(fontSize: 13, color: Colors.black54),
-                      ),
-                    ),
-                    controlAffinity: ListTileControlAffinity.leading,
-                  ),
-                ),
+              _permissionCard(
+                checked: _agreedNotification,
+                title: '알림 접근 허용 (필수)',
+                subtitle: notificationSubtitle,
+                onTap: () async {
+                  if (_agreedNotification) {
+                    setState(() {
+                      _agreedNotification = false;
+                    });
+                  } else {
+                    await _handleNotificationPermission();
+                  }
+                },
               ),
               const Spacer(),
               SizedBox(
@@ -305,7 +366,10 @@ class _PermissionScreenState extends State<PermissionScreen> with WidgetsBinding
                       borderRadius: BorderRadius.circular(14),
                     ),
                   ),
-                  child: const Text('동의 안 함', style: TextStyle(fontSize: 16)),
+                  child: const Text(
+                    '동의 안 함',
+                    style: TextStyle(fontSize: 16),
+                  ),
                 ),
               ),
             ],

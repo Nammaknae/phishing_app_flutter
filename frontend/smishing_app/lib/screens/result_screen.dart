@@ -76,18 +76,15 @@ class ResultScreen extends StatelessWidget {
       case 'SAFE':
       case 'SUCCESS':
         return '안전';
-
       case 'SUSPICIOUS':
       case 'SUSPIOUS':
       case 'WARNING':
       case 'CAUTION':
         return '주의';
-
       case 'DANGER':
       case 'RISK':
       case 'MALICIOUS':
         return '위험';
-
       default:
         return _replaceEnglishGrades(grade);
     }
@@ -102,18 +99,15 @@ class ResultScreen extends StatelessWidget {
       case 'SAFE':
       case 'SUCCESS':
         return '안전';
-
       case 'SUSPICIOUS':
       case 'SUSPIOUS':
       case 'WARNING':
       case 'CAUTION':
         return '주의';
-
       case 'DANGER':
       case 'RISK':
       case 'MALICIOUS':
         return '위험';
-
       default:
         return _replaceEnglishGrades(value);
     }
@@ -191,6 +185,7 @@ class ResultScreen extends StatelessWidget {
 
   String _formatSafeBrowsing() {
     if (safeBrowsing.isEmpty) return '-';
+
     return safeBrowsing.map((item) {
       final url = item['url']?.toString() ?? '-';
       final isMalicious = item['isMalicious'] == true;
@@ -275,13 +270,23 @@ class ResultScreen extends StatelessWidget {
               _SimpleCard(
                 title: '판단 요약',
                 icon: Icons.info_outline,
-                child: Text(
-                  _shortSummary,
-                  style: const TextStyle(
-                    fontSize: 15.5,
-                    height: 1.65,
-                    color: Colors.black87,
-                  ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      _shortSummary,
+                      style: const TextStyle(
+                        fontSize: 15.5,
+                        height: 1.65,
+                        color: Colors.black87,
+                      ),
+                    ),
+                    if (koreanGuideText != null &&
+                        koreanGuideText.isNotEmpty) ...[
+                      const SizedBox(height: 16),
+                      _AiDetailBox(content: koreanGuideText),
+                    ],
+                  ],
                 ),
               ),
               const SizedBox(height: 18),
@@ -362,8 +367,7 @@ class ResultScreen extends StatelessWidget {
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10),
                     ),
-                  ),          
-
+                  ),
                   child: const Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
@@ -381,7 +385,6 @@ class ResultScreen extends StatelessWidget {
                         ),
                       ),
                     ],
-
                   ),
                 ),
               ),
@@ -418,11 +421,6 @@ class ResultScreen extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 10),
-              if (koreanGuideText != null && koreanGuideText.isNotEmpty)
-                _HiddenDetail(
-                  title: '상세 설명',
-                  content: koreanGuideText,
-                ),
               _HiddenDetail(
                 title: '고급 탐지 정보',
                 content: 'Safe Browsing: ${_formatSafeBrowsing()}\n'
@@ -466,7 +464,7 @@ class _SimpleCard extends StatelessWidget {
         border: Border.all(color: const Color(0xFFE8EEF5)),
         boxShadow: [
           BoxShadow(
-	            color: Colors.black.withValues(alpha: 0.055),
+            color: Colors.black.withValues(alpha: 0.055),
             blurRadius: 12,
             offset: const Offset(0, 4),
           ),
@@ -535,6 +533,65 @@ class _InfoRow extends StatelessWidget {
                 color: valueColor ?? Colors.black87,
                 fontWeight:
                     valueColor == null ? FontWeight.w400 : FontWeight.w700,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AiDetailBox extends StatelessWidget {
+  final String content;
+
+  const _AiDetailBox({
+    required this.content,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFFF5FAFF),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: const Color(0xFFE3EEF9),
+        ),
+      ),
+      child: ExpansionTile(
+        tilePadding: const EdgeInsets.symmetric(horizontal: 12),
+        childrenPadding: const EdgeInsets.fromLTRB(12, 0, 12, 14),
+        leading: const Icon(
+          Icons.smart_toy_outlined,
+          color: Color(0xFF1976D2),
+        ),
+        iconColor: const Color(0xFF1976D2),
+        collapsedIconColor: const Color(0xFF1976D2),
+        title: const Text(
+          'AI 상세 분석 보기',
+          style: TextStyle(
+            fontSize: 15,
+            fontWeight: FontWeight.w800,
+            color: Color(0xFF1976D2),
+          ),
+        ),
+        subtitle: const Text(
+          'OpenAI 분석 내용을 펼쳐서 확인할 수 있어요.',
+          style: TextStyle(
+            fontSize: 12.5,
+            color: Colors.black54,
+          ),
+        ),
+        children: [
+          Align(
+            alignment: Alignment.centerLeft,
+            child: Text(
+              content,
+              style: const TextStyle(
+                fontSize: 14,
+                height: 1.6,
+                color: Colors.black87,
               ),
             ),
           ),
